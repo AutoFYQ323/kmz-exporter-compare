@@ -222,7 +222,7 @@ def show_text_result(parent, text, title):
             with open(path, "w", encoding="utf-8") as handle:
                 handle.write(text)
         except OSError as exc:
-            _msg(dialog, "导出报告", "没有写成文件：{0}".format(exc), warning=True)
+            _msg(dialog, "导出报告", tr("没有写成文件：{0}").format(exc), warning=True)
             return
         _write("namesReportDir", os.path.dirname(path))
         _msg(dialog, "导出报告", path)
@@ -677,7 +677,7 @@ def build_names_page(host):
 
 def _pick_compare_kmz(host):
     start = os.path.dirname(host._kmz_path) if getattr(host, "_kmz_path", "") else ""
-    path, _selected = QFileDialog.getOpenFileName(host, "选择 KMZ 文件", start, "KMZ (*.kmz)")
+    path, _selected = QFileDialog.getOpenFileName(host, tr("选择 KMZ 文件"), start, "KMZ (*.kmz)")
     if path:
         _set_compare_kmz(host, path)
 
@@ -768,7 +768,7 @@ def build_auto_page(host):
 
 def _pick_style(host, which):
     title = "选择源图层" if which == "a" else "选择参考图层"
-    path, _selected = QFileDialog.getOpenFileName(host, title, "", "KMZ (*.kmz)")
+    path, _selected = QFileDialog.getOpenFileName(host, tr(title), "", "KMZ (*.kmz)")
     if path:
         _set_style(host, which, path)
 
@@ -881,7 +881,7 @@ def build_manual_page(host):
 
 
 def _pick_manual(host, which):
-    path, _selected = QFileDialog.getOpenFileName(host, "选择源图层" if which == "a" else "选择参考图层", "", "KMZ (*.kmz)")
+    path, _selected = QFileDialog.getOpenFileName(host, tr("选择源图层" if which == "a" else "选择参考图层"), "", "KMZ (*.kmz)")
     if path:
         _set_manual(host, which, path)
 
@@ -1636,7 +1636,7 @@ def _open_ogr_layers(path):
 
 def _pick_coord_file(host):
     start = os.path.dirname(host._coord_file_path) if getattr(host, "_coord_file_path", "") else ""
-    path, _selected = QFileDialog.getOpenFileName(host, "选择 KML / KMZ", start, "KML/KMZ (*.kml *.kmz)")
+    path, _selected = QFileDialog.getOpenFileName(host, tr("选择 KML / KMZ"), start, "KML/KMZ (*.kml *.kmz)")
     if path:
         _set_coord_file(host, path)
 
@@ -1885,10 +1885,10 @@ def _commit_coord_edits(layer_ids, save_edit):
         return True, ""
     if not save_edit:
         names = "、".join(layer.name() or "图层" for layer in editing)
-        return False, "参与对比的图层「{0}」还在编辑，请先退出或勾选保存编辑模式。".format(names)
+        return False, tr("参与对比的图层「{0}」还在编辑，请先退出或勾选保存编辑模式。").format(names)
     for layer in editing:
         if not layer.commitChanges():
-            return False, "失败：图层「{}」保存失败".format(layer.name())
+            return False, tr("失败：图层「{}」保存失败").format(layer.name())
     return True, ""
 
 

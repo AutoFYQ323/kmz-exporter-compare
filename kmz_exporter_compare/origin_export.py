@@ -292,7 +292,7 @@ class KmzExportDialog(QWidget):
         self.chkEmpty = QCheckBox("导出空图层")
         self.chkEmpty.setToolTip("勾选：没有要素的图层也写成空文件夹。不勾选：跳过这些图层。")
         self.editNullName = QLineEdit("NULL")
-        self.editNullName.setFixedWidth(56)
+        self.editNullName.setFixedWidth(200)
         self.editNullName.setToolTip("没有显示字段，或这个字段的值为空时，要素名称写成这里的文字。")
         self._load_options()
         self.comboShared.currentIndexChanged.connect(self._apply_shared_field)
@@ -1023,7 +1023,7 @@ class KmzExportDialog(QWidget):
 
     def _export_config(self):
         path, _selected = QFileDialog.getSaveFileName(
-            self, "导出配置", self._config_start("导出KMZ配置.json"), "JSON (*.json)"
+            self, tr("导出配置"), self._config_start(tr("导出KMZ配置.json")), "JSON (*.json)"
         )
         if not path:
             return
@@ -1039,7 +1039,7 @@ class KmzExportDialog(QWidget):
 
     def _import_config(self):
         path, _selected = QFileDialog.getOpenFileName(
-            self, "导入配置", self._config_start(""), "JSON (*.json)"
+            self, tr("导入配置"), self._config_start(""), "JSON (*.json)"
         )
         if not path:
             return
