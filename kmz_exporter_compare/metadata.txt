@@ -14,7 +14,7 @@ repository=https://github.com/AutoFYQ323/kmz-exporter-compare
 tags=kmz,kml,shapefile,shp,folder,compare,style,coordinates
 category=Vector
 changelog=1.0.1
-    Pass the plugins.qgis.org security scan and the Qt6 enum check. Local KML parsing and intentional error guards are marked for the scanner. Qt enums use the QGIS 4 scoped names and still run on QGIS 3.28.
+    Pass the plugins.qgis.org security scan and the Qt6 enum check. Local KML parsing and intentional error guards are marked for the scanner. Qt enums use the QGIS 4 scoped names and still run on QGIS 3.28. Field types stay QVariant.String, which the Qt6 checker accepts.
     1.0.0
     First public release. Group KMZ/KML export, manual and automatic reference styling, coordinate compare in the project CRS, layer compare with a text or CSV report, layer tools, settings import/export, restore default window sizes, and Chinese, English, Spanish, French, and Arabic UI.
 experimental=False
