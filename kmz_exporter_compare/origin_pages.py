@@ -1996,11 +1996,11 @@ def _compare_pair(main_layer, kmz_layer, compare_type, tolerance, add_result=Tru
         result.setCrs(project_crs)
     provider = result.dataProvider()
     if compare_type == 0:
-        provider.addAttributes([QgsField("Name", QVariant.Type.String, "text", 100)])
+        provider.addAttributes([QgsField("Name", QVariant.String, "text", 100)])
     else:
         provider.addAttributes([
-            QgsField("Name1", QVariant.Type.String, "text", 100),
-            QgsField("Name2", QVariant.Type.String, "text", 100),
+            QgsField("Name1", QVariant.String, "text", 100),
+            QgsField("Name2", QVariant.String, "text", 100),
         ])
     result.updateFields()
     for geometry, tag in chosen:
