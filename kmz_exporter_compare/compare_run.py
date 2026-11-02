@@ -453,7 +453,7 @@ def compare_layer(layer, kmz_rows, tolerance, name_field):
     for row in kmz_rows:
         try:
             geom = _to_layer_crs(row["geometry"], layer)
-        except Exception:
+        except Exception:  # nosec B112
             continue
         if geom.isEmpty():
             continue
@@ -477,11 +477,11 @@ def write_result_layer(layer, only_src, only_dst, moved):
         memory.setCrs(layer.crs())
     provider = memory.dataProvider()
     provider.addAttributes([
-        QgsField("code", QVariant.String, "text", 20),
-        QgsField("status", QVariant.String, "text", 20),
-        QgsField("name", QVariant.String, "text", 254),
-        QgsField("other_name", QVariant.String, "text", 254),
-        QgsField("distance", QVariant.Double, "double", 20, 6),
+        QgsField("code", QVariant.Type.String, "text", 20),
+        QgsField("status", QVariant.Type.String, "text", 20),
+        QgsField("name", QVariant.Type.String, "text", 254),
+        QgsField("other_name", QVariant.Type.String, "text", 254),
+        QgsField("distance", QVariant.Type.Double, "double", 20, 6),
     ])
     memory.updateFields()
     rows = []

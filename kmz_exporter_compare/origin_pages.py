@@ -93,13 +93,13 @@ class KmzDropFrame(QFrame):
         )
 
     def childEvent(self, event):
-        if event.type() == QEvent.ChildAdded and event.child().isWidgetType():
+        if event.type() == QEvent.Type.ChildAdded and event.child().isWidgetType():
             event.child().installEventFilter(self)
         super(KmzDropFrame, self).childEvent(event)
 
     def eventFilter(self, obj, event):
-        if obj is not self and event.type() in (QEvent.DragEnter, QEvent.Drop):
-            if event.type() == QEvent.DragEnter:
+        if obj is not self and event.type() in (QEvent.Type.DragEnter, QEvent.Type.Drop):
+            if event.type() == QEvent.Type.DragEnter:
                 self.dragEnterEvent(event)
             else:
                 self.dropEvent(event)
@@ -143,10 +143,10 @@ def _msg(parent, title, text, warning=False):
     box.setStyleSheet(_POPUP)
     box.setWindowTitle(tr(title))
     box.setText(tr(text))
-    box.setIcon(QMessageBox.Warning if warning else QMessageBox.Information)
+    box.setIcon(QMessageBox.Icon.Warning if warning else QMessageBox.Icon.Information)
     run_dialog(box)
     if text:
-        level = Qgis.Warning if warning else Qgis.Info
+        level = Qgis.MessageLevel.Warning if warning else Qgis.MessageLevel.Info
         QgsMessageLog.logMessage(tr(text), "KMZ Exporter & Compare", level)
 
 
@@ -154,7 +154,7 @@ def _hint(text):
     label = QLabel(text)
     label.setWordWrap(True)
     label.setMinimumWidth(0)
-    label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+    label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
     label.setStyleSheet("color: #5d7a8c; font-size: 11px;")
     return label
 
@@ -318,7 +318,7 @@ def disconnect_coord_page(host):
         return
     try:
         QgsProject.instance().crsChanged.disconnect(slot)
-    except Exception:
+    except Exception:  # nosec B110
         pass
     host._coord_crs_slot = None
 
@@ -329,16 +329,16 @@ def reset_saved_settings(host):
     box = QMessageBox(host)
     box.setWindowTitle(tr("恢复全部配置"))
     box.setText(tr("将清除本插件记住的路径、导出选项、对比选项和窗口大小。界面语言保持不变。"))
-    box.setIcon(QMessageBox.Warning)
-    box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-    box.setDefaultButton(QMessageBox.No)
-    yes = box.button(QMessageBox.Yes)
-    no = box.button(QMessageBox.No)
+    box.setIcon(QMessageBox.Icon.Warning)
+    box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+    box.setDefaultButton(QMessageBox.StandardButton.No)
+    yes = box.button(QMessageBox.StandardButton.Yes)
+    no = box.button(QMessageBox.StandardButton.No)
     if yes is not None:
         yes.setText(tr("确定"))
     if no is not None:
         no.setText(tr("取消"))
-    if run_dialog(box) != QMessageBox.Yes:
+    if run_dialog(box) != QMessageBox.StandardButton.Yes:
         return
     text, ok = QInputDialog.getText(host, tr("二次确认"), tr("请输入 OK 确认清空配置："))
     if not ok or text.strip().upper() != "OK":
@@ -385,7 +385,7 @@ def _half_row(left, right):
     row.setContentsMargins(0, 0, 0, 0)
     for button in (left, right):
         button.setMinimumHeight(36)
-        button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
     row.addWidget(left, 1)
     row.addWidget(right, 1)
     return row
@@ -596,7 +596,7 @@ def run_export(host, dialog):
     total = max(len(selection.get("layers") or {}), 1)
     progress = QProgressDialog(tr("正在导出 KMZ..."), tr("取消"), 0, total, host)
     progress.setWindowTitle(tr("导出 KMZ"))
-    progress.setWindowModality(Qt.WindowModal)
+    progress.setWindowModality(Qt.WindowModality.WindowModal)
     progress.setMinimumDuration(0)
     progress.setValue(0)
     canceled = {"stop": False}
@@ -697,7 +697,7 @@ def run_names(host):
     if not path or not os.path.isfile(path):
         _msg(host, "提示", "请先选择有效的 KMZ 文件。", warning=True)
         return
-    QApplication.setOverrideCursor(Qt.WaitCursor)
+    QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
     try:
         if host.radioKmzByGeometry.isChecked():
             text = geometry_type_report(path)
@@ -812,7 +812,7 @@ def run_auto(host):
     out_path = _pick_kmz_or_kml(host, "导出输出图层")
     if not out_path:
         return
-    QApplication.setOverrideCursor(Qt.WaitCursor)
+    QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
     try:
         result_lines, icon_by_folder, folder_names = _kmz_style_replace(
             host._kmz_style_a, host._kmz_style_b, out_path
@@ -935,13 +935,13 @@ def run_manual(host):
         source_root_name=_kml_source_root_display_name(root_a, host._kmz_manual_a),
         ref_root_name=_kml_document_name(root_b),
     )
-    accepted = run_dialog(dialog) == QDialog.Accepted
+    accepted = run_dialog(dialog) == QDialog.DialogCode.Accepted
     if not accepted:
         return
     out_path = _pick_kmz_or_kml(host, "导出输出图层")
     if not out_path:
         return
-    QApplication.setOverrideCursor(Qt.WaitCursor)
+    QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
     try:
         if dialog.use_ref_structure():
             result_lines, icon_by_folder, folder_names = _kmz_style_replace_ref_structure(
@@ -990,7 +990,7 @@ def build_coords_page(host):
         button.setCheckable(True)
         button.setStyleSheet(_FILTER_STYLE)
         button.setMinimumHeight(40)
-        button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
     host.btnCoordFile.setChecked(True)
     host.btnCoordFile.clicked.connect(lambda: _set_coord_mode(host, "file"))
     host.btnCoordQgis.clicked.connect(lambda: _set_coord_mode(host, "qgis"))
@@ -999,10 +999,10 @@ def build_coords_page(host):
     left_top.addLayout(switch)
     host.lblCoordFile = _path_label("未选择 KML / KMZ")
     host.lblCoordFile.setWordWrap(False)
-    host.lblCoordFile.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+    host.lblCoordFile.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
     pick = styled_button("选择 KML / KMZ")
     pick.setMinimumHeight(36)
-    pick.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+    pick.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
     pick.clicked.connect(lambda: _pick_coord_file(host))
     frame = KmzDropFrame(on_drop=lambda path: _set_coord_file(host, path))
     frame.suffixes = (".kml", ".kmz")
@@ -1068,7 +1068,7 @@ def build_coords_page(host):
     buttons.addWidget(home, 1)
     buttons.setSpacing(8)
     run_box = QFrame()
-    run_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    run_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
     run_box.setObjectName("coordRunBox")
     run_box.setStyleSheet(
         "QFrame#coordRunBox { border: 1px solid #66bb6a; border-radius: 8px; background: rgba(255,255,255,0.72); }"
@@ -1086,7 +1086,7 @@ def build_coords_page(host):
     left_wrap.setMinimumHeight(band)
     right_wrap.setMinimumHeight(band)
     layout.addLayout(top)
-    splitter = QSplitter(Qt.Horizontal)
+    splitter = QSplitter(Qt.Orientation.Horizontal)
     splitter.setHandleWidth(8)
     left = QWidget()
     left_layout = QVBoxLayout(left)
@@ -1163,10 +1163,10 @@ def _drop_point(event):
 
 def _coord_drag_list():
     widget = QListWidget()
-    widget.setSelectionMode(QListWidget.SingleSelection)
+    widget.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
     widget.setDragEnabled(True)
-    widget.setDragDropMode(QListWidget.DragOnly)
-    widget.setDefaultDropAction(Qt.CopyAction)
+    widget.setDragDropMode(QListWidget.DragDropMode.DragOnly)
+    widget.setDefaultDropAction(Qt.DropAction.CopyAction)
     widget.setStyleSheet(_LIST_STYLE)
     return widget
 
@@ -1177,8 +1177,8 @@ class _CoordRightDelegate(QStyledItemDelegate):
     def paint(self, painter, option, index):
         painter.save()
         rect = option.rect
-        matched = bool(index.data(Qt.UserRole + 1))
-        selected = bool(option.state & QStyle.State_Selected)
+        matched = bool(index.data(Qt.ItemDataRole.UserRole + 1))
+        selected = bool(option.state & QStyle.StateFlag.State_Selected)
         if selected:
             painter.fillRect(rect, option.palette.highlight())
             base = option.palette.highlightedText().color()
@@ -1187,7 +1187,7 @@ class _CoordRightDelegate(QStyledItemDelegate):
             base = _MATCHED_FG
         else:
             base = QColor("#263238")
-        text = index.data(Qt.DisplayRole) or ""
+        text = index.data(Qt.ItemDataRole.DisplayRole) or ""
         text_rect = QRect(rect)
         text_rect.adjust(6, 0, -6, 0)
         if matched:
@@ -1199,29 +1199,29 @@ class _CoordRightDelegate(QStyledItemDelegate):
             metrics = painter.fontMetrics()
             head_width = _text_width(metrics, head)
             painter.setPen(base)
-            painter.drawText(text_rect, Qt.AlignVCenter | Qt.AlignLeft, head)
+            painter.drawText(text_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, head)
             vs_font = QFont(option.font)
             vs_font.setBold(True)
             painter.setFont(vs_font)
             painter.setPen(QColor("#c62828"))
             vs_rect = QRect(text_rect)
             vs_rect.setLeft(text_rect.left() + head_width)
-            painter.drawText(vs_rect, Qt.AlignVCenter | Qt.AlignLeft, vs)
+            painter.drawText(vs_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, vs)
             vs_width = _text_width(painter.fontMetrics(), vs)
             painter.setFont(option.font)
             painter.setPen(base)
             tail_rect = QRect(text_rect)
             tail_rect.setLeft(text_rect.left() + head_width + vs_width)
-            shown = metrics.elidedText(tail, Qt.ElideRight, max(0, tail_rect.width()))
-            painter.drawText(tail_rect, Qt.AlignVCenter | Qt.AlignLeft, shown)
+            shown = metrics.elidedText(tail, Qt.TextElideMode.ElideRight, max(0, tail_rect.width()))
+            painter.drawText(tail_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, shown)
             painter.setFont(vs_font)
             painter.setPen(QColor("#c62828"))
             clear = QRect(rect.right() - self._CLEAR, rect.top(), self._CLEAR, rect.height())
-            painter.drawText(clear, Qt.AlignCenter, "×")
+            painter.drawText(clear, Qt.AlignmentFlag.AlignCenter, "×")
         else:
             painter.setPen(base)
-            shown = painter.fontMetrics().elidedText(text, Qt.ElideRight, max(0, text_rect.width()))
-            painter.drawText(text_rect, Qt.AlignVCenter | Qt.AlignLeft, shown)
+            shown = painter.fontMetrics().elidedText(text, Qt.TextElideMode.ElideRight, max(0, text_rect.width()))
+            painter.drawText(text_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, shown)
         painter.restore()
 
 
@@ -1236,18 +1236,18 @@ class _CoordDropList(QListWidget):
         super(_CoordDropList, self).__init__()
         self._host = host
         self.setAcceptDrops(True)
-        self.setDragDropMode(QListWidget.DropOnly)
-        self.setDefaultDropAction(Qt.CopyAction)
-        self.setSelectionMode(QListWidget.SingleSelection)
+        self.setDragDropMode(QListWidget.DragDropMode.DropOnly)
+        self.setDefaultDropAction(Qt.DropAction.CopyAction)
+        self.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         self.setStyleSheet(_LIST_STYLE)
 
     def mousePressEvent(self, event):
         point = _drop_point(event)
         item = self.itemAt(point)
-        if item is not None and item.data(Qt.UserRole + 1):
+        if item is not None and item.data(Qt.ItemDataRole.UserRole + 1):
             rect = self.visualItemRect(item)
             if point.x() >= rect.right() - _CoordRightDelegate._CLEAR:
-                _clear_coord_pair(self._host, item.data(Qt.UserRole))
+                _clear_coord_pair(self._host, item.data(Qt.ItemDataRole.UserRole))
                 event.accept()
                 return
         super(_CoordDropList, self).mousePressEvent(event)
@@ -1286,7 +1286,7 @@ class _CoordDropList(QListWidget):
         if not chosen or target is None:
             event.ignore()
             return
-        _assign_coord_pair(self._host, chosen[0].data(Qt.UserRole), target.data(Qt.UserRole))
+        _assign_coord_pair(self._host, chosen[0].data(Qt.ItemDataRole.UserRole), target.data(Qt.ItemDataRole.UserRole))
         event.acceptProposedAction()
 
 
@@ -1336,11 +1336,11 @@ def _shared_filter_row(host):
     buttons.append(host.btnCoordEmpty)
     half = (len(buttons) + 1) // 2
     for button in buttons[:half]:
-        button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         button.setMinimumHeight(32)
         top.addWidget(button, 1)
     for button in buttons[half:]:
-        button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         button.setMinimumHeight(32)
         bottom.addWidget(button, 1)
     wrap = QVBoxLayout()
@@ -1352,14 +1352,14 @@ def _shared_filter_row(host):
 
 def _map_unit_name():
     names = {
-        QgsUnitTypes.DistanceMeters: "米",
-        QgsUnitTypes.DistanceKilometers: "千米",
-        QgsUnitTypes.DistanceCentimeters: "厘米",
-        QgsUnitTypes.DistanceMillimeters: "毫米",
-        QgsUnitTypes.DistanceFeet: "英尺",
-        QgsUnitTypes.DistanceYards: "码",
-        QgsUnitTypes.DistanceMiles: "英里",
-        QgsUnitTypes.DistanceDegrees: "度",
+        QgsUnitTypes.DistanceUnit.DistanceMeters: "米",
+        QgsUnitTypes.DistanceUnit.DistanceKilometers: "千米",
+        QgsUnitTypes.DistanceUnit.DistanceCentimeters: "厘米",
+        QgsUnitTypes.DistanceUnit.DistanceMillimeters: "毫米",
+        QgsUnitTypes.DistanceUnit.DistanceFeet: "英尺",
+        QgsUnitTypes.DistanceUnit.DistanceYards: "码",
+        QgsUnitTypes.DistanceUnit.DistanceMiles: "英里",
+        QgsUnitTypes.DistanceUnit.DistanceDegrees: "度",
     }
     nautical = getattr(QgsUnitTypes, "DistanceNauticalMiles", None)
     if nautical is not None:
@@ -1412,7 +1412,7 @@ def _is_folder_layer(layer):
         kind = layer.wkbType()
     except Exception:
         return True
-    if kind in (QgsWkbTypes.NoGeometry, QgsWkbTypes.Unknown):
+    if kind in (QgsWkbTypes.Type.NoGeometry, QgsWkbTypes.Type.Unknown):
         return True
     return _geom_key(layer) == "other"
 
@@ -1445,11 +1445,11 @@ def _clear_all_coord_pairs(host):
 
 def _geom_key(layer):
     kind = QgsWkbTypes.geometryType(layer.wkbType())
-    if kind == QgsWkbTypes.PointGeometry:
+    if kind == QgsWkbTypes.GeometryType.PointGeometry:
         return "point"
-    if kind == QgsWkbTypes.LineGeometry:
+    if kind == QgsWkbTypes.GeometryType.LineGeometry:
         return "line"
-    if kind == QgsWkbTypes.PolygonGeometry:
+    if kind == QgsWkbTypes.GeometryType.PolygonGeometry:
         return "polygon"
     return "other"
 
@@ -1768,8 +1768,8 @@ def _fill_coord_list(host, side):
             text = _layer_label(layer)
             left = None
         item = QListWidgetItem(text)
-        item.setData(Qt.UserRole, layer.id())
-        item.setData(Qt.UserRole + 1, _layer_label(left) if left is not None else "")
+        item.setData(Qt.ItemDataRole.UserRole, layer.id())
+        item.setData(Qt.ItemDataRole.UserRole + 1, _layer_label(left) if left is not None else "")
         if paired:
             item.setBackground(QBrush(_MATCHED_BG))
             item.setForeground(QBrush(_MATCHED_FG))
@@ -1786,7 +1786,7 @@ def _remember_coord_order(host, side):
     else:
         order_name = "_coord_qgis_order"
     order = list(getattr(host, order_name))
-    selected = [item.data(Qt.UserRole) for item in widget.selectedItems()]
+    selected = [item.data(Qt.ItemDataRole.UserRole) for item in widget.selectedItems()]
     order = [item for item in order if item in selected]
     for item in selected:
         if item not in order:
@@ -1808,7 +1808,7 @@ def _chosen_layers(host, side):
         widget = host._coord_qgis_list
         layers = host._coord_qgis_layers
         order = host._coord_qgis_order
-    selected = {item.data(Qt.UserRole) for item in widget.selectedItems()}
+    selected = {item.data(Qt.ItemDataRole.UserRole) for item in widget.selectedItems()}
     return _layers_in_order(layers, [item for item in order if item in selected])
 
 
@@ -1844,7 +1844,7 @@ def run_coords(host):
     lines.append("")
     progress = QProgressDialog(tr("正在对比..."), tr("取消"), 0, len(pairs), host)
     progress.setWindowTitle(tr("坐标对比"))
-    progress.setWindowModality(Qt.WindowModal)
+    progress.setWindowModality(Qt.WindowModality.WindowModal)
     progress.setMinimumDuration(0)
     progress.setValue(0)
     stopped = False
@@ -1996,11 +1996,11 @@ def _compare_pair(main_layer, kmz_layer, compare_type, tolerance, add_result=Tru
         result.setCrs(project_crs)
     provider = result.dataProvider()
     if compare_type == 0:
-        provider.addAttributes([QgsField("Name", QVariant.String, "text", 100)])
+        provider.addAttributes([QgsField("Name", QVariant.Type.String, "text", 100)])
     else:
         provider.addAttributes([
-            QgsField("Name1", QVariant.String, "text", 100),
-            QgsField("Name2", QVariant.String, "text", 100),
+            QgsField("Name1", QVariant.Type.String, "text", 100),
+            QgsField("Name2", QVariant.Type.String, "text", 100),
         ])
     result.updateFields()
     for geometry, tag in chosen:

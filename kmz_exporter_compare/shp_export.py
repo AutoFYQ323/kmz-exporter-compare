@@ -93,7 +93,7 @@ def _writer_error(result):
     else:
         code = result
         message = str(result)
-    if code == QgsVectorFileWriter.NoError:
+    if code == QgsVectorFileWriter.WriterError.NoError:
         return ""
     return message or "写出失败"
 

@@ -135,7 +135,7 @@ def wrap_button_text(text):
 def _text_width(metrics, text):
     if hasattr(metrics, "horizontalAdvance"):
         return metrics.horizontalAdvance(text)
-    return metrics.width(text)
+    return metrics.boundingRect(text).width()
 
 
 def _line_pairs(text):
@@ -247,7 +247,7 @@ def watch_button_fit(widget):
 
     class _Fit(QObject):
         def eventFilter(self, watched, event):
-            if event.type() in (QEvent.Resize, QEvent.Show):
+            if event.type() in (QEvent.Type.Resize, QEvent.Type.Show):
                 if not getattr(watched, "_fit_pending", False):
                     watched._fit_pending = True
 

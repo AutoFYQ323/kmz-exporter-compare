@@ -59,12 +59,12 @@ def _kmz_legend_pixmap(layer, max_icons=4, size=22):
     shown = symbols[:max_icons]
     if not shown:
         empty = QPixmap(1, size)
-        empty.fill(Qt.transparent)
+        empty.fill(Qt.GlobalColor.transparent)
         return empty
     gap = 3
     extra = 28 if len(symbols) > max_icons else 0
     pm = QPixmap(len(shown) * (size + gap) + extra, size)
-    pm.fill(Qt.transparent)
+    pm.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pm)
     try:
         x = 0
@@ -82,7 +82,7 @@ def _kmz_legend_pixmap(layer, max_icons=4, size=22):
             font = painter.font()
             font.setPointSize(8)
             painter.setFont(font)
-            painter.drawText(QRect(x, 0, extra, size), Qt.AlignVCenter | Qt.AlignLeft, "+{}".format(len(symbols) - max_icons))
+            painter.drawText(QRect(x, 0, extra, size), Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, "+{}".format(len(symbols) - max_icons))
     finally:
         painter.end()
     return pm
@@ -122,11 +122,11 @@ class KmzFieldDialog(QDialog):
         self.table.setColumnWidth(1, 170)
         for row, spec in enumerate(specs):
             check = QTableWidgetItem("")
-            check.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-            check.setCheckState(Qt.Checked if spec.get("on", True) else Qt.Unchecked)
+            check.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
+            check.setCheckState(Qt.CheckState.Checked if spec.get("on", True) else Qt.CheckState.Unchecked)
             self.table.setItem(row, 0, check)
             src = QTableWidgetItem(spec.get("source") or "")
-            src.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+            src.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
             self.table.setItem(row, 1, src)
             name = QTableWidgetItem((spec.get("export") or spec.get("source") or ""))
             self.table.setItem(row, 2, name)
@@ -134,8 +134,8 @@ class KmzFieldDialog(QDialog):
         row = QHBoxLayout()
         btn_all = styled_button("全选")
         btn_none = styled_button("全不选")
-        btn_all.clicked.connect(lambda: self._set_checks(Qt.Checked))
-        btn_none.clicked.connect(lambda: self._set_checks(Qt.Unchecked))
+        btn_all.clicked.connect(lambda: self._set_checks(Qt.CheckState.Checked))
+        btn_none.clicked.connect(lambda: self._set_checks(Qt.CheckState.Unchecked))
         row.addWidget(btn_all)
         row.addWidget(btn_none)
         row.addStretch(1)
@@ -163,7 +163,7 @@ class KmzFieldDialog(QDialog):
             check = self.table.item(row, 0)
             src = src_item.text() if src_item is not None else ""
             export = name_item.text().strip() if name_item is not None else ""
-            on = check is not None and check.checkState() == Qt.Checked
+            on = check is not None and check.checkState() == Qt.CheckState.Checked
             out.append({"source": src, "export": export or src, "on": on})
         return out
 
@@ -210,7 +210,7 @@ class KmzExportDialog(QWidget):
         self._on_export = on_export
         self.setObjectName("KmzExportPage")
         self.setWindowTitle("导出 KMZ")
-        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setStyleSheet(
             self._PLAIN_BTN
             + "QWidget#KmzExportPage { background: #ffffff; color: #263238; }"
@@ -218,7 +218,7 @@ class KmzExportDialog(QWidget):
             + "QWidget#KmzExportPage QTreeWidget { color: #263238; background: #ffffff; }"
             + "QWidget#KmzExportPage QHeaderView::section { color: #263238; background: #eeeeee; font-weight: bold; }"
         )
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setMinimumSize(0, 0)
         self.output_path = ""
         self._block = False
@@ -262,20 +262,20 @@ class KmzExportDialog(QWidget):
         shared.addWidget(QLabel("共用字段"))
         self.comboShared = NoWheelComboBox()
         self.comboShared.setMinimumContentsLength(6)
-        self.comboShared.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
-        self.comboShared.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.comboShared.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.comboShared.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.comboShared.setToolTip("只差大小写的字段算同一个，例如 Name 和 NAME。选中后，每个图层的显示字段改成它自己的写法；没有的留空并标红。最多 5 个。")
         shared.addWidget(self.comboShared, 1)
         self.lblUnconfiguredTitle = QLabel("未配置显示字段：")
         self.lblUnconfiguredTitle.setStyleSheet("color: #c62828; font-weight: bold;")
-        self.lblUnconfiguredTitle.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.lblUnconfiguredTitle.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.lblUnconfiguredTitle.setObjectName("keepText")
         self.lblUnconfigured = QLabel("无")
         self.lblUnconfigured.setObjectName("dynamicText")
         self.lblUnconfigured.setStyleSheet("color: #c62828; font-weight: bold;")
         self.lblUnconfigured.setWordWrap(False)
-        self.lblUnconfigured.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-        self.lblUnconfigured.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        self.lblUnconfigured.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        self.lblUnconfigured.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         info_box = QWidget()
         info = QHBoxLayout(info_box)
         info.setContentsMargins(0, 0, 0, 0)
@@ -321,7 +321,7 @@ class KmzExportDialog(QWidget):
         btn_cancel = styled_button("取消")
         btn_save = styled_button("保存配置", mark_key="save")
         for btn in (btn_toggle, btn_ok, btn_home, btn_cancel, btn_save):
-            btn.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Expanding)
+            btn.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Expanding)
             btn.setStyleSheet(self._BAR_BTN)
             btn.setMinimumHeight(48)
         btn_toggle.setMinimumWidth(156)
@@ -435,7 +435,7 @@ class KmzExportDialog(QWidget):
         if save_config:
             try:
                 s.setValue("kmzExportLastConfig", json.dumps(self._snapshot(), ensure_ascii=False))
-            except Exception:
+            except Exception:  # nosec B110
                 pass
         s.endGroup()
 
@@ -457,15 +457,15 @@ class KmzExportDialog(QWidget):
                 node = QTreeWidgetItem(parent)
                 legend = item.get("name") or ""
                 node.setText(0, "")
-                node.setFlags((node.flags() | Qt.ItemIsUserCheckable | Qt.ItemIsEnabled) & ~Qt.ItemIsEditable)
-                node.setCheckState(0, Qt.Checked)
-                node.setData(0, Qt.UserRole, _kmz_path_key(item.get("path")))
-                node.setData(0, Qt.UserRole + 7, legend)
+                node.setFlags((node.flags() | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled) & ~Qt.ItemFlag.ItemIsEditable)
+                node.setCheckState(0, Qt.CheckState.Checked)
+                node.setData(0, Qt.ItemDataRole.UserRole, _kmz_path_key(item.get("path")))
+                node.setData(0, Qt.ItemDataRole.UserRole + 7, legend)
                 name_edit = QLineEdit(legend)
                 self.tree.setItemWidget(node, 3, name_edit)
                 if item.get("type") == "group":
-                    node.setFlags(node.flags() | Qt.ItemIsAutoTristate)
-                    node.setData(0, Qt.UserRole + 1, "group")
+                    node.setFlags(node.flags() | Qt.ItemFlag.ItemIsAutoTristate)
+                    node.setData(0, Qt.ItemDataRole.UserRole + 1, "group")
                     count = add(node, item.get("children") or [])
                     node.setExpanded(True)
                     font = node.font(1)
@@ -502,18 +502,18 @@ class KmzExportDialog(QWidget):
                         if fname not in self._key_spellings[key]:
                             self._key_spellings[key].append(fname)
                     fields = unique
-                    node.setData(0, Qt.UserRole + 1, "layer")
-                    node.setData(0, Qt.UserRole + 2, layer_id)
-                    node.setData(0, Qt.UserRole + 3, fields)
+                    node.setData(0, Qt.ItemDataRole.UserRole + 1, "layer")
+                    node.setData(0, Qt.ItemDataRole.UserRole + 2, layer_id)
+                    node.setData(0, Qt.ItemDataRole.UserRole + 3, fields)
                     matched = _kmz_match_name_field(layer, "Name") if layer is not None else None
-                    node.setData(0, Qt.UserRole + 4, matched or "")
-                    node.setData(0, Qt.UserRole + 6, [
+                    node.setData(0, Qt.ItemDataRole.UserRole + 4, matched or "")
+                    node.setData(0, Qt.ItemDataRole.UserRole + 6, [
                         {"source": fname, "export": fname, "on": True} for fname in fields
                     ])
                     node.setForeground(1, QBrush(self._LAYER_COLOR))
                     preview = QLabel()
                     preview.setPixmap(_kmz_legend_pixmap(layer))
-                    preview.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                    preview.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                     self.tree.setItemWidget(node, 2, preview)
                     combo = NoWheelComboBox()
                     combo.setEditable(False)
@@ -526,7 +526,7 @@ class KmzExportDialog(QWidget):
                     )
                     self.tree.setItemWidget(node, 4, combo)
                     has_class = _kmz_layer_classified(layer)
-                    node.setData(0, Qt.UserRole + 8, bool(has_class))
+                    node.setData(0, Qt.ItemDataRole.UserRole + 8, bool(has_class))
                     split = NoWheelComboBox()
                     split.setEditable(False)
                     split.addItem("按QGIS分类", "qgis")
@@ -541,14 +541,14 @@ class KmzExportDialog(QWidget):
                     )
                     self.tree.setItemWidget(node, 5, split)
                     btn = styled_button("字段")
-                    btn.setFocusPolicy(Qt.NoFocus)
+                    btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
                     btn.setStyleSheet(self._PLAIN_BTN)
-                    btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+                    btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
                     btn.setToolTip("选择要导出的字段，以及写出时的字段名。不打开则全部按原名导出。")
                     btn.clicked.connect(lambda _c=False, one=node: self._edit_fields(one))
                     self.tree.setColumnWidth(6, max(self.tree.columnWidth(6), btn.sizeHint().width() + 12))
                     self.tree.setItemWidget(node, 6, btn)
-                node.setData(0, Qt.UserRole + 5, count)
+                node.setData(0, Qt.ItemDataRole.UserRole + 5, count)
                 node.setText(1, "{} ({})".format(legend, count))
                 total += count
             return total
@@ -578,7 +578,7 @@ class KmzExportDialog(QWidget):
         combo.blockSignals(False)
 
     def _mark_field(self, node, missing):
-        kind = node.data(0, Qt.UserRole + 1)
+        kind = node.data(0, Qt.ItemDataRole.UserRole + 1)
         if kind == "group":
             node.setForeground(1, QBrush(self._FOLDER_COLOR))
             return
@@ -595,13 +595,13 @@ class KmzExportDialog(QWidget):
         def walk(item):
             for i in range(item.childCount()):
                 child = item.child(i)
-                if child.data(0, Qt.UserRole + 1) == "group":
+                if child.data(0, Qt.ItemDataRole.UserRole + 1) == "group":
                     walk(child)
                     continue
-                fields = list(child.data(0, Qt.UserRole + 3) or [])
+                fields = list(child.data(0, Qt.ItemDataRole.UserRole + 3) or [])
                 combo = self.tree.itemWidget(child, 4)
                 if not chosen:
-                    default = child.data(0, Qt.UserRole + 4) or ""
+                    default = child.data(0, Qt.ItemDataRole.UserRole + 4) or ""
                     self._select_combo(combo, default if default in fields else "")
                     picked = combo.currentData() if combo is not None else ""
                     self._mark_field(child, not picked)
@@ -651,16 +651,16 @@ class KmzExportDialog(QWidget):
         partial = False
         for i in range(total):
             state = item.child(i).checkState(0)
-            if state == Qt.Checked:
+            if state == Qt.CheckState.Checked:
                 checked += 1
-            elif state == Qt.PartiallyChecked:
+            elif state == Qt.CheckState.PartiallyChecked:
                 partial = True
         if partial or (0 < checked < total):
-            item.setCheckState(0, Qt.PartiallyChecked)
+            item.setCheckState(0, Qt.CheckState.PartiallyChecked)
         elif checked == 0:
-            item.setCheckState(0, Qt.Unchecked)
+            item.setCheckState(0, Qt.CheckState.Unchecked)
         else:
-            item.setCheckState(0, Qt.Checked)
+            item.setCheckState(0, Qt.CheckState.Checked)
 
     def _set_all(self, state):
         self._block = True
@@ -682,12 +682,12 @@ class KmzExportDialog(QWidget):
             nonlocal all_on
             for i in range(item.childCount()):
                 child = item.child(i)
-                if child.data(0, Qt.UserRole + 1) != "group" and child.checkState(0) != Qt.Checked:
+                if child.data(0, Qt.ItemDataRole.UserRole + 1) != "group" and child.checkState(0) != Qt.CheckState.Checked:
                     all_on = False
                 walk(child)
 
         walk(self.tree.invisibleRootItem())
-        self._set_all(Qt.Unchecked if all_on else Qt.Checked)
+        self._set_all(Qt.CheckState.Unchecked if all_on else Qt.CheckState.Checked)
 
     def _sync_info_height(self):
         height = max(
@@ -705,13 +705,13 @@ class KmzExportDialog(QWidget):
         def walk(item):
             for i in range(item.childCount()):
                 child = item.child(i)
-                if child.data(0, Qt.UserRole + 1) == "group":
+                if child.data(0, Qt.ItemDataRole.UserRole + 1) == "group":
                     walk(child)
                     continue
                 combo = self.tree.itemWidget(child, 4)
                 field = combo.currentData() if combo is not None else ""
                 if not field:
-                    names.append(child.data(0, Qt.UserRole + 7) or child.text(1) or "图层")
+                    names.append(child.data(0, Qt.ItemDataRole.UserRole + 7) or child.text(1) or "图层")
 
         walk(self.tree.invisibleRootItem())
         self._unconfigured_full = "、".join(names) if names else tr("无")
@@ -730,7 +730,7 @@ class KmzExportDialog(QWidget):
         if width < 40:
             width = max(self.width() - title_w - 36, 40)
         self.lblUnconfigured.setText(
-            self.lblUnconfigured.fontMetrics().elidedText(self._unconfigured_full, Qt.ElideRight, width)
+            self.lblUnconfigured.fontMetrics().elidedText(self._unconfigured_full, Qt.TextElideMode.ElideRight, width)
         )
 
     def _mark_qgis_split(self, combo, enabled):
@@ -748,7 +748,7 @@ class KmzExportDialog(QWidget):
             for i in range(item.childCount()):
                 child = item.child(i)
                 walk(child)
-                if child.data(0, Qt.UserRole + 1) == "group":
+                if child.data(0, Qt.ItemDataRole.UserRole + 1) == "group":
                     self._sync_parent(child)
 
         walk(self.tree.invisibleRootItem())
@@ -757,7 +757,7 @@ class KmzExportDialog(QWidget):
         def walk(item):
             for i in range(item.childCount()):
                 child = item.child(i)
-                if child.data(0, Qt.UserRole + 1) == "group":
+                if child.data(0, Qt.ItemDataRole.UserRole + 1) == "group":
                     walk(child)
                     continue
                 combo = self.tree.itemWidget(child, 4)
@@ -784,13 +784,13 @@ class KmzExportDialog(QWidget):
         if combo is None:
             return
         if mode == "qgis":
-            token = "qgis"
+            stored = "qgis"
         elif not mode:
-            token = ""
+            stored = ""
         else:
-            token = "f:" + str(mode)
+            stored = "f:" + str(mode)
         combo.blockSignals(True)
-        idx = combo.findData(token)
+        idx = combo.findData(stored)
         if idx < 0 and mode and mode != "qgis":
             folded = str(mode).casefold()
             for i in range(combo.count()):
@@ -798,7 +798,7 @@ class KmzExportDialog(QWidget):
                 if str(data).startswith("f:") and str(data)[2:].casefold() == folded:
                     idx = i
                     break
-        if idx >= 0 and token == "qgis":
+        if idx >= 0 and stored == "qgis":
             model = combo.model()
             item = model.item(idx) if model is not None and hasattr(model, "item") else None
             if item is not None and not item.isEnabled():
@@ -809,11 +809,11 @@ class KmzExportDialog(QWidget):
         combo.blockSignals(False)
 
     def _edit_fields(self, node):
-        specs = list(node.data(0, Qt.UserRole + 6) or [])
+        specs = list(node.data(0, Qt.ItemDataRole.UserRole + 6) or [])
         dlg = KmzFieldDialog(specs, self)
-        if run_dialog(dlg) != QDialog.Accepted:
+        if run_dialog(dlg) != QDialog.DialogCode.Accepted:
             return
-        node.setData(0, Qt.UserRole + 6, dlg.specs())
+        node.setData(0, Qt.ItemDataRole.UserRole + 6, dlg.specs())
 
     def _name_text(self, node):
         edit = self.tree.itemWidget(node, 3)
@@ -828,13 +828,13 @@ class KmzExportDialog(QWidget):
         def walk(item):
             for i in range(item.childCount()):
                 child = item.child(i)
-                kind = child.data(0, Qt.UserRole + 1)
+                kind = child.data(0, Qt.ItemDataRole.UserRole + 1)
                 export_name = self._name_text(child).strip()
                 if kind == "group":
-                    groups[child.data(0, Qt.UserRole)] = export_name
+                    groups[child.data(0, Qt.ItemDataRole.UserRole)] = export_name
                     walk(child)
                     continue
-                if child.checkState(0) != Qt.Checked:
+                if child.checkState(0) != Qt.CheckState.Checked:
                     continue
                 combo = self.tree.itemWidget(child, 4)
                 field = ""
@@ -842,11 +842,11 @@ class KmzExportDialog(QWidget):
                     field = combo.currentData()
                     if field is None:
                         field = ""
-                layers[child.data(0, Qt.UserRole + 2) or ""] = {
+                layers[child.data(0, Qt.ItemDataRole.UserRole + 2) or ""] = {
                     "export_name": export_name,
                     "name_field": str(field or "").strip(),
                     "split": self._split_value(child),
-                    "fields": list(child.data(0, Qt.UserRole + 6) or []),
+                    "fields": list(child.data(0, Qt.ItemDataRole.UserRole + 6) or []),
                 }
 
         walk(self.tree.invisibleRootItem())
@@ -859,12 +859,12 @@ class KmzExportDialog(QWidget):
         def walk(item):
             for i in range(item.childCount()):
                 child = item.child(i)
-                kind = child.data(0, Qt.UserRole + 1)
-                legend = child.data(0, Qt.UserRole + 7) or ""
+                kind = child.data(0, Qt.ItemDataRole.UserRole + 1)
+                legend = child.data(0, Qt.ItemDataRole.UserRole + 7) or ""
                 export_name = self._name_text(child)
                 if kind == "group":
                     groups.append({
-                        "path": child.data(0, Qt.UserRole) or "",
+                        "path": child.data(0, Qt.ItemDataRole.UserRole) or "",
                         "legend": legend,
                         "export_name": export_name,
                     })
@@ -874,11 +874,11 @@ class KmzExportDialog(QWidget):
                 field = combo.currentData() if combo is not None else ""
                 layers.append({
                     "legend": legend,
-                    "checked": child.checkState(0) == Qt.Checked,
+                    "checked": child.checkState(0) == Qt.CheckState.Checked,
                     "export_name": export_name,
                     "display_field": str(field or ""),
                     "split": self._split_value(child),
-                    "fields": list(child.data(0, Qt.UserRole + 6) or []),
+                    "fields": list(child.data(0, Qt.ItemDataRole.UserRole + 6) or []),
                 })
 
         walk(self.tree.invisibleRootItem())
@@ -936,10 +936,10 @@ class KmzExportDialog(QWidget):
             def walk(item):
                 for i in range(item.childCount()):
                     child = item.child(i)
-                    kind = child.data(0, Qt.UserRole + 1)
-                    legend = child.data(0, Qt.UserRole + 7) or ""
+                    kind = child.data(0, Qt.ItemDataRole.UserRole + 1)
+                    legend = child.data(0, Qt.ItemDataRole.UserRole + 7) or ""
                     if kind == "group":
-                        rec = take_group(child.data(0, Qt.UserRole) or "", legend)
+                        rec = take_group(child.data(0, Qt.ItemDataRole.UserRole) or "", legend)
                         if rec is not None and "export_name" in rec:
                             edit = self.tree.itemWidget(child, 3)
                             if edit is not None:
@@ -949,12 +949,12 @@ class KmzExportDialog(QWidget):
                     rec = take(pending, legend)
                     if rec is None:
                         continue
-                    child.setCheckState(0, Qt.Checked if rec.get("checked", True) else Qt.Unchecked)
+                    child.setCheckState(0, Qt.CheckState.Checked if rec.get("checked", True) else Qt.CheckState.Unchecked)
                     if "export_name" in rec:
                         edit = self.tree.itemWidget(child, 3)
                         if edit is not None:
                             edit.setText(rec.get("export_name") or "")
-                    fields = list(child.data(0, Qt.UserRole + 3) or [])
+                    fields = list(child.data(0, Qt.ItemDataRole.UserRole + 3) or [])
                     display = rec.get("display_field") or ""
                     actual = display if display in fields else (_kmz_field_for_key(fields, display) or "")
                     self._select_combo(self.tree.itemWidget(child, 4), actual)
@@ -963,10 +963,10 @@ class KmzExportDialog(QWidget):
                         split = ""
                     if split and split != "qgis" and split not in fields:
                         split = _kmz_field_for_key(fields, split) or ""
-                    if split == "qgis" and not child.data(0, Qt.UserRole + 8):
+                    if split == "qgis" and not child.data(0, Qt.ItemDataRole.UserRole + 8):
                         split = ""
                     self._select_split(self.tree.itemWidget(child, 5), split)
-                    child.setData(0, Qt.UserRole + 6, _kmz_merge_field_specs(fields, rec.get("fields")))
+                    child.setData(0, Qt.ItemDataRole.UserRole + 6, _kmz_merge_field_specs(fields, rec.get("fields")))
 
             walk(self.tree.invisibleRootItem())
             for leftover in pending.values():

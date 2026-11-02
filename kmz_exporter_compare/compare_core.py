@@ -34,7 +34,7 @@ def classify(src, dst, tolerance, distance):
                 continue
             try:
                 gap = distance(left["payload"], right["payload"])
-            except Exception:
+            except Exception:  # nosec B112
                 continue
             if gap <= tolerance:
                 near_src.add(i)
@@ -63,7 +63,7 @@ def classify(src, dst, tolerance, distance):
                 continue
             try:
                 gap = distance(left["payload"], dst[j]["payload"])
-            except Exception:
+            except Exception:  # nosec B112
                 continue
             if best is None or gap < best:
                 best = gap

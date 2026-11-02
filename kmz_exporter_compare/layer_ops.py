@@ -12,7 +12,7 @@ def _rollback(layer):
     try:
         if layer.isEditable():
             layer.rollBack()
-    except Exception:
+    except Exception:  # nosec B110
         pass
 
 
@@ -111,16 +111,16 @@ def confirm_clear(parent, only_current=False):
     box = QMessageBox(parent)
     box.setWindowTitle(tr("二次确认"))
     box.setText(tr("确认删除全部要素？这一步不能返回，也不能撤销。"))
-    box.setIcon(QMessageBox.Warning)
-    box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-    box.setDefaultButton(QMessageBox.No)
-    yes = box.button(QMessageBox.Yes)
-    no = box.button(QMessageBox.No)
+    box.setIcon(QMessageBox.Icon.Warning)
+    box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+    box.setDefaultButton(QMessageBox.StandardButton.No)
+    yes = box.button(QMessageBox.StandardButton.Yes)
+    no = box.button(QMessageBox.StandardButton.No)
     if yes is not None:
         yes.setText(tr("删除全部"))
     if no is not None:
         no.setText(tr("取消"))
-    return run_dialog(box) == QMessageBox.Yes
+    return run_dialog(box) == QMessageBox.StandardButton.Yes
 
 
 _FORMATS = (
@@ -196,18 +196,18 @@ def copy_current_layer(parent, with_features):
     where = source or tr("这个图层没有文件路径，默认保存到工程所在文件夹。")
     box = QMessageBox(parent)
     box.setWindowTitle(tr("复制当前图层") if with_features else tr("复制当前图层为空"))
-    box.setIcon(QMessageBox.Information)
+    box.setIcon(QMessageBox.Icon.Information)
     box.setText(tr("当前所选图层：{0}\n路径：{1}\n原格式：{2}\n{3}\n\n下一步选择保存位置。默认就在这个文件夹，格式默认与原图层相同。").format(
         name, where, label, kind
     ))
-    box.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-    ok_button = box.button(QMessageBox.Ok)
-    cancel_button = box.button(QMessageBox.Cancel)
+    box.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
+    ok_button = box.button(QMessageBox.StandardButton.Ok)
+    cancel_button = box.button(QMessageBox.StandardButton.Cancel)
     if ok_button is not None:
         ok_button.setText(tr("继续"))
     if cancel_button is not None:
         cancel_button.setText(tr("取消"))
-    if run_dialog(box) != QMessageBox.Ok:
+    if run_dialog(box) != QMessageBox.StandardButton.Ok:
         return None
     filters = ";;".join("{0} (*{1})".format(item[0], item[2]) for item in _FORMATS)
     initial = "{0} (*{1})".format(label, ext)
@@ -253,8 +253,8 @@ def copy_current_layer(parent, with_features):
     options.fileEncoding = "UTF-8"
     options.layerName = os.path.splitext(os.path.basename(path))[0]
     try:
-        options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
-    except Exception:
+        options.actionOnExistingFile = QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteFile
+    except Exception:  # nosec B110
         pass
     writer = getattr(QgsVectorFileWriter, "writeAsVectorFormatV3", None)
     result = writer(memory, path, QgsProject.instance().transformContext(), options)

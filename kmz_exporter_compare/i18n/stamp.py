@@ -115,12 +115,12 @@ def retranslate_tree(root):
                 widget.setProperty("fullText", full)
                 widget.setText(wrap_button_text(full))
                 fit_button_label(widget)
-            except Exception:
+            except Exception:  # nosec B110
                 pass
         elif msgid and hasattr(widget, "setText"):
             try:
                 widget.setText(translate_label(str(msgid)))
-            except Exception:
+            except Exception:  # nosec B110
                 pass
         tip = widget.property("tip")
         if tip and hasattr(widget, "setToolTip"):

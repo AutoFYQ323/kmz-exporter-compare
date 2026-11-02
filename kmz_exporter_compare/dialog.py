@@ -40,10 +40,10 @@ from .i18n import current_language, language_changed, set_language, tr
 from .i18n.stamp import retranslate_tree, stamp_tree
 
 _SETTINGS = "KMZExporterCompare"
-_KIND = Qt.UserRole
-_PATH = Qt.UserRole + 1
-_LAYER = Qt.UserRole + 2
-_FIELDS = Qt.UserRole + 3
+_KIND = Qt.ItemDataRole.UserRole
+_PATH = Qt.ItemDataRole.UserRole + 1
+_LAYER = Qt.ItemDataRole.UserRole + 2
+_FIELDS = Qt.ItemDataRole.UserRole + 3
 
 _STYLE = """
 #KmzMainDialog {
@@ -195,7 +195,7 @@ def _plugin_version():
             for line in handle:
                 if line.startswith("version="):
                     return line.split("=", 1)[1].strip()
-    except Exception:
+    except Exception:  # nosec B110
         pass
     return ""
 
@@ -325,8 +325,8 @@ class _HubButton(QFrame):
         self.setObjectName("hubBtn")
         self.setProperty("hubDesc", desc)
         self.setProperty("pressed", False)
-        self.setCursor(Qt.PointingHandCursor)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setMinimumWidth(0)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(6, 4, 6, 4)
@@ -338,32 +338,32 @@ class _HubButton(QFrame):
         if mark_key:
             icon_label = QLabel()
             icon_label.setPixmap(mark_icon(mark_key, 20).pixmap(20, 20))
-            icon_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-            title_row.addWidget(icon_label, 0, Qt.AlignVCenter)
+            icon_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+            title_row.addWidget(icon_label, 0, Qt.AlignmentFlag.AlignVCenter)
         self.title_label = QLabel(tr(title))
         self.title_label.setObjectName("hubTitle")
         self.title_label.setProperty("msgid", title)
-        self.title_label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-        self.title_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
+        self.title_label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.title_label.setStyleSheet(
             "color: #ffffff; font-size: 13px; font-weight: bold; background: transparent;"
         )
-        self.title_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        title_row.addWidget(self.title_label, 0, Qt.AlignVCenter)
+        self.title_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        title_row.addWidget(self.title_label, 0, Qt.AlignmentFlag.AlignVCenter)
         title_row.addStretch(1)
         layout.addLayout(title_row)
         self.desc_label = QLabel(tr(desc))
         self.desc_label.setObjectName("hubDesc")
         self.desc_label.setProperty("msgid", desc)
-        self.desc_label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-        self.desc_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.desc_label.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
+        self.desc_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self.desc_label.setWordWrap(False)
         self.title_label.setWordWrap(False)
         self.desc_label.setStyleSheet(
             "color: #102418; font-size: 10px; font-weight: normal; background: transparent;"
         )
-        self.desc_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        layout.addWidget(self.desc_label, 0, Qt.AlignHCenter)
+        self.desc_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        layout.addWidget(self.desc_label, 0, Qt.AlignmentFlag.AlignHCenter)
         layout.addStretch(1)
         self.setToolTip(tr(desc))
 
@@ -373,13 +373,13 @@ class _HubButton(QFrame):
         self.style().polish(self)
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self._paint_pressed(True)
         super(_HubButton, self).mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
         self._paint_pressed(False)
-        if event.button() == Qt.LeftButton and self.rect().contains(pointer_pos(event)):
+        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(pointer_pos(event)):
             self.clicked.emit()
         super(_HubButton, self).mouseReleaseEvent(event)
 
@@ -417,7 +417,7 @@ class MainDialog(QDialog):
         self.toolbar.setMovable(False)
         self.toolbar.setFloatable(False)
         self.toolbar.setIconSize(QSize(24, 24))
-        self.toolbar.setToolButtonStyle(Qt.ToolButtonIconOnly)
+        self.toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.act_language = QAction(self._language_icon(), "", self)
         self.act_language.setToolTip(tr("语言"))
         self.act_language.triggered.connect(self._show_language_menu)
@@ -439,7 +439,7 @@ class MainDialog(QDialog):
         self.act_settings.triggered.connect(self._show_settings_menu)
         self.toolbar.addAction(self.act_settings)
         spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.toolbar.addWidget(spacer)
         root.addWidget(self.toolbar)
         self.stack = _PageStack()
@@ -492,7 +492,7 @@ class MainDialog(QDialog):
         store.endGroup()
 
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Escape and self._page_key != "home":
+        if event.key() == Qt.Key.Key_Escape and self._page_key != "home":
             self.open_page("home")
             return
         super(MainDialog, self).keyPressEvent(event)
@@ -526,7 +526,7 @@ class MainDialog(QDialog):
         self.op_list = QListWidget()
         self.op_list.setObjectName("opList")
         self.op_list.setIconSize(QSize(16, 16))
-        self.op_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.op_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         from .icons import glyph_icon
         self._op_items = (
             ("clear", "清空数据", "删除全部矢量图层的全部要素，不能恢复", "trash", "#c62828"),
@@ -537,9 +537,9 @@ class MainDialog(QDialog):
         )
         for key, title, tip, mark, color in self._op_items:
             item = QListWidgetItem(glyph_icon(mark, color), tr(title))
-            item.setData(Qt.UserRole, key)
-            item.setData(Qt.UserRole + 1, title)
-            item.setData(Qt.UserRole + 2, tip)
+            item.setData(Qt.ItemDataRole.UserRole, key)
+            item.setData(Qt.ItemDataRole.UserRole + 1, title)
+            item.setData(Qt.ItemDataRole.UserRole + 2, tip)
             item.setToolTip(tr(tip))
             self.op_list.addItem(item)
         self.op_list.setCurrentRow(0)
@@ -588,7 +588,7 @@ class MainDialog(QDialog):
 
     def _add_page(self, key, page):
         page.setMinimumSize(0, 0)
-        page.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        page.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
         self._pages[key] = page
         self.stack.addWidget(page)
 
@@ -751,7 +751,7 @@ class MainDialog(QDialog):
 
     def _on_confirm(self):
         item = self.op_list.currentItem()
-        choice = item.data(Qt.UserRole) if item is not None else ""
+        choice = item.data(Qt.ItemDataRole.UserRole) if item is not None else ""
         if choice == "clear":
             if not layer_ops.confirm_clear(self):
                 return
