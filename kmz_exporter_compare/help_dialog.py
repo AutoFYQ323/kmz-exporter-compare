@@ -29,7 +29,7 @@ def show_help(parent=None):
         browser.setHtml(tr(body))
         tabs.addTab(browser, tr(title))
     layout.addWidget(tabs, 1)
-    buttons = QDialogButtonBox(QDialogButtonBox.Close)
+    buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
     localize_button_box(buttons)
     buttons.rejected.connect(dialog.reject)
     buttons.clicked.connect(dialog.accept)

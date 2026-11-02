@@ -64,7 +64,7 @@ def current_language():
     lang = detect_initial_language(qloc, sysloc)
     try:
         QSettings().setValue(_SETTINGS, lang)
-    except Exception:
+    except Exception:  # nosec B110
         pass
     return lang
 
@@ -76,7 +76,7 @@ def set_language(lang):
         primary = LANG_ZH
     try:
         QSettings().setValue(_SETTINGS, primary)
-    except Exception:
+    except Exception:  # nosec B110
         pass
     hub().changed.emit(primary)
     return primary
@@ -90,7 +90,7 @@ def tr(msgid, *args, **kwargs):
     if args or kwargs:
         try:
             text = text % (args if args else kwargs) if args else text % kwargs
-        except Exception:
+        except Exception:  # nosec B110
             pass
     return text
 
@@ -103,11 +103,11 @@ def localize_button_box(box):
     except Exception:
         return box
     mapping = (
-        (QDialogButtonBox.Ok, "确定"),
-        (QDialogButtonBox.Cancel, "取消"),
-        (QDialogButtonBox.Close, "关闭"),
-        (QDialogButtonBox.Yes, "是"),
-        (QDialogButtonBox.No, "否"),
+        (QDialogButtonBox.StandardButton.Ok, "确定"),
+        (QDialogButtonBox.StandardButton.Cancel, "取消"),
+        (QDialogButtonBox.StandardButton.Close, "关闭"),
+        (QDialogButtonBox.StandardButton.Yes, "是"),
+        (QDialogButtonBox.StandardButton.No, "否"),
     )
     for flag, msgid in mapping:
         try:

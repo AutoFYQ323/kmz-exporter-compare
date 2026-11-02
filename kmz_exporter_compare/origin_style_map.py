@@ -50,7 +50,7 @@ class _OneLineCheck(QCheckBox):
         self._note = ""
         self._applying = False
         self.setMinimumWidth(48)
-        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
 
     def set_full(self, text, note=""):
         self._full = text or ""
@@ -72,7 +72,7 @@ class _OneLineCheck(QCheckBox):
         width = self.contentsRect().width() - 34
         if width < 16:
             width = max(16, self.width() - 30)
-        shown = self.fontMetrics().elidedText(self._full, Qt.ElideRight, width)
+        shown = self.fontMetrics().elidedText(self._full, Qt.TextElideMode.ElideRight, width)
         if self.text() != shown:
             self.setText(shown)
         tip = self._full
@@ -142,7 +142,7 @@ class KmzStyleMapDialog(QDialog):
 
         self.chkRefStructure = _OneLineCheck("按参考的结构与名称输出")
         self.chkRefStructure.setChecked(bool(use_ref_structure))
-        self.chkRefStructure.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.chkRefStructure.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self.chkRefStructure.setToolTip(
             "开启：输出的文件夹结构与图层名与参考一致；数据只来自源图层；"
             "未匹配的源图层不导出；参考中没有对应源数据的图层保留空文件夹和样式，不含参考原要素。"
@@ -151,8 +151,8 @@ class KmzStyleMapDialog(QDialog):
 
         self.lblUnused = QLabel("未匹配源图层：")
         self.lblUnused.setWordWrap(True)
-        self.lblUnused.setTextFormat(Qt.RichText)
-        self.lblUnused.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.lblUnused.setTextFormat(Qt.TextFormat.RichText)
+        self.lblUnused.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         self.lblUnused.setStyleSheet(
             "background:#fafafa; border: none; padding: 6px 8px; color:#37474f;"
         )
@@ -161,8 +161,8 @@ class KmzStyleMapDialog(QDialog):
         unusedBox.setWidgetResizable(True)
         unusedBox.setMinimumHeight(56)
         unusedBox.setMaximumHeight(96)
-        unusedBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        unusedBox.setFrameShape(QFrame.StyledPanel)
+        unusedBox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        unusedBox.setFrameShape(QFrame.Shape.StyledPanel)
         unusedBox.setStyleSheet(
             "QScrollArea { background:#fafafa; border: 1px solid #c8e6c9; border-radius: 6px; }"
         )
@@ -212,14 +212,14 @@ class KmzStyleMapDialog(QDialog):
             chkRow.addWidget(box, 1)
         layout.addLayout(chkRow)
 
-        btnAuto = self._make_action_button("自动匹配", "#1976d2", "#1565c0", QStyle.SP_BrowserReload)
+        btnAuto = self._make_action_button("自动匹配", "#1976d2", "#1565c0", QStyle.StandardPixmap.SP_BrowserReload)
         btnAuto.clicked.connect(self._auto_match)
-        btnSave = self._make_action_button("保存配置", "#1565c0", "#0d47a1", QStyle.SP_DialogSaveButton)
+        btnSave = self._make_action_button("保存配置", "#1565c0", "#0d47a1", QStyle.StandardPixmap.SP_DialogSaveButton)
         btnSave.clicked.connect(self._save_page_config)
-        btnOk = self._make_action_button("导出KMZ/KML", "#43a047", "#2e7d32", QStyle.SP_DialogOkButton)
+        btnOk = self._make_action_button("导出KMZ/KML", "#43a047", "#2e7d32", QStyle.StandardPixmap.SP_DialogOkButton)
         btnOk.clicked.connect(self._on_accept)
         for button in (btnAuto, btnSave, btnOk):
-            button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+            button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
             button.setMinimumHeight(44)
         btnRow = QHBoxLayout()
         btnRow.setSpacing(8)
@@ -233,14 +233,14 @@ class KmzStyleMapDialog(QDialog):
             tr("参考图层"), tr("几何"), tr("要素"), tr("源图层"), tr("来源"),
         ])
         self.table.verticalHeader().setVisible(False)
-        self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.table.setMinimumHeight(180)
         self.table.setShowGrid(True)
         try:
-            self.table.setSizeAdjustPolicy(QAbstractItemView.AdjustIgnored)
-        except Exception:
+            self.table.setSizeAdjustPolicy(QAbstractItemView.SizeAdjustPolicy.AdjustIgnored)
+        except Exception:  # nosec B110
             pass
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, header_mode("Stretch"))
@@ -252,7 +252,7 @@ class KmzStyleMapDialog(QDialog):
         layout.addWidget(self.table, 1)
 
         self.lblSummary = QLabel("")
-        self.lblSummary.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        self.lblSummary.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         layout.addWidget(self.lblSummary)
 
         self._build_rows()
@@ -285,7 +285,7 @@ class KmzStyleMapDialog(QDialog):
         btn.setProperty("fullText", shown)
         btn.setIcon(self.style().standardIcon(icon_std))
         btn.setIconSize(QSize(16, 16))
-        btn.setCursor(Qt.PointingHandCursor)
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setAutoDefault(False)
         btn.setDefault(False)
         btn.setStyleSheet(
@@ -427,7 +427,7 @@ class KmzStyleMapDialog(QDialog):
     def _make_source_combo(self, b_geom=None, keep_name="", used_others=None):
         combo = NoWheelComboBox(self.table)
         combo.setStyleSheet(self._COMBO_STYLE)
-        combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         combo.setFixedHeight(26)
         combo.setMaxVisibleItems(16)
         self._fill_source_combo(combo, b_geom, keep_name, used_others)
@@ -482,7 +482,7 @@ class KmzStyleMapDialog(QDialog):
         for i, brow in enumerate(self._b_rows):
             is_layer = brow.get("is_layer", False)
             item_name = QTableWidgetItem(brow.get("display") or brow.get("name") or "")
-            item_name.setFlags(item_name.flags() & ~Qt.ItemIsEditable)
+            item_name.setFlags(item_name.flags() & ~Qt.ItemFlag.ItemIsEditable)
             if brow.get("is_doc_root"):
                 item_name.setText(tr("最外层"))
                 item_name.setToolTip(tr("输出 KMZ 最外层（Document）名称，不参与图层匹配。"))
@@ -491,10 +491,10 @@ class KmzStyleMapDialog(QDialog):
                 item_name.setToolTip(path_tip)
             self.table.setItem(i, 0, item_name)
             item_geom = QTableWidgetItem(tr(brow.get("geom") or "—") if is_layer else tr("文件夹"))
-            item_geom.setFlags(item_geom.flags() & ~Qt.ItemIsEditable)
+            item_geom.setFlags(item_geom.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table.setItem(i, 1, item_geom)
             item_cnt = QTableWidgetItem(str(brow.get("count") or 0) if is_layer else "")
-            item_cnt.setFlags(item_cnt.flags() & ~Qt.ItemIsEditable)
+            item_cnt.setFlags(item_cnt.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table.setItem(i, 2, item_cnt)
 
             if is_layer:
@@ -509,8 +509,8 @@ class KmzStyleMapDialog(QDialog):
                 self._combos.append(None)
 
             src_item = QTableWidgetItem("" if is_layer else "")
-            src_item.setFlags(src_item.flags() & ~Qt.ItemIsEditable)
-            src_item.setTextAlignment(Qt.AlignCenter)
+            src_item.setFlags(src_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            src_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.table.setItem(i, 4, src_item)
             self._source_items.append(src_item)
             self.table.setRowHeight(i, 30)
@@ -789,13 +789,13 @@ class KmzStyleMapDialog(QDialog):
             mb = QMessageBox(self)
             mb.setWindowTitle(tr("提示"))
             mb.setText(tr("已保存匹配表。"))
-            mb.setIcon(QMessageBox.Information)
+            mb.setIcon(QMessageBox.Icon.Information)
             run_dialog(mb)
         except Exception as e:
             mb = QMessageBox(self)
             mb.setWindowTitle(tr("错误"))
             mb.setText(tr("保存失败：{}").format(str(e)))
-            mb.setIcon(QMessageBox.Warning)
+            mb.setIcon(QMessageBox.Icon.Warning)
             run_dialog(mb)
 
     def _load_map(self):
@@ -815,13 +815,13 @@ class KmzStyleMapDialog(QDialog):
                 mb = QMessageBox(self)
                 mb.setWindowTitle(tr("提示"))
                 mb.setText(tr("已读取匹配表，部分条目未能套用：\n{0}").format("\n".join(notes)))
-                mb.setIcon(QMessageBox.Warning)
+                mb.setIcon(QMessageBox.Icon.Warning)
                 run_dialog(mb)
         except Exception as e:
             mb = QMessageBox(self)
             mb.setWindowTitle(tr("错误"))
             mb.setText(tr("读取失败：{}").format(str(e)))
-            mb.setIcon(QMessageBox.Warning)
+            mb.setIcon(QMessageBox.Icon.Warning)
             run_dialog(mb)
 
     def _on_accept(self):
@@ -840,10 +840,10 @@ class KmzStyleMapDialog(QDialog):
                 lines.append(tr("是否继续？"))
                 mb = QMessageBox(self)
                 mb.setWindowTitle(tr("确认输出"))
-                mb.setIcon(QMessageBox.Question)
+                mb.setIcon(QMessageBox.Icon.Question)
                 mb.setText("\n".join(lines))
-                btn_yes = mb.addButton(tr("继续"), QMessageBox.YesRole)
-                mb.addButton(tr("返回修改"), QMessageBox.NoRole)
+                btn_yes = mb.addButton(tr("继续"), QMessageBox.ButtonRole.YesRole)
+                mb.addButton(tr("返回修改"), QMessageBox.ButtonRole.NoRole)
                 mb.setDefaultButton(btn_yes)
                 run_dialog(mb)
                 if mb.clickedButton() != btn_yes:
@@ -851,10 +851,10 @@ class KmzStyleMapDialog(QDialog):
         elif unmatched:
             mb = QMessageBox(self)
             mb.setWindowTitle(tr("未匹配图层"))
-            mb.setIcon(QMessageBox.Question)
+            mb.setIcon(QMessageBox.Icon.Question)
             mb.setText(tr("有 {0} 个源图层未匹配，将保留原样式。是否继续？").format(len(unmatched)))
-            btn_yes = mb.addButton(tr("继续"), QMessageBox.YesRole)
-            mb.addButton(tr("返回修改"), QMessageBox.NoRole)
+            btn_yes = mb.addButton(tr("继续"), QMessageBox.ButtonRole.YesRole)
+            mb.addButton(tr("返回修改"), QMessageBox.ButtonRole.NoRole)
             mb.setDefaultButton(btn_yes)
             run_dialog(mb)
             if mb.clickedButton() != btn_yes:

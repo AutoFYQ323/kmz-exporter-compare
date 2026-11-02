@@ -13,17 +13,17 @@ def tool_icon(theme_name, letter, color):
             icon = QgsApplication.getThemeIcon(theme_name)
             if icon is not None and not icon.isNull():
                 return icon
-        except Exception:
+        except Exception:  # nosec B110
             pass
     return _drawn(letter, color)
 
 
 def glyph_icon(kind, color, size=16):
     pix = QPixmap(size, size)
-    pix.fill(Qt.transparent)
+    pix.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pix)
-    painter.setRenderHint(QPainter.Antialiasing)
-    painter.setPen(Qt.NoPen)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setPen(Qt.PenStyle.NoPen)
     painter.setBrush(QColor(color))
     radius = max(2.0, size * 0.18)
     painter.drawRoundedRect(QRectF(0, 0, size - 1, size - 1), radius, radius)
@@ -36,9 +36,9 @@ def glyph_icon(kind, color, size=16):
 
 
 def _stroke(painter, width):
-    pen = QPen(QColor("#ffffff"), width, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+    pen = QPen(QColor("#ffffff"), width, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
     painter.setPen(pen)
-    painter.setBrush(Qt.NoBrush)
+    painter.setBrush(Qt.BrushStyle.NoBrush)
 
 
 def _line(painter, x1, y1, x2, y2):
@@ -64,7 +64,7 @@ def _glyph(painter, kind, background):
         _line(painter, 8.85, 7.15, 8.85, 11.45)
         return
     if kind == "pencil":
-        painter.setPen(Qt.NoPen)
+        painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(white)
         body = QPainterPath()
         body.moveTo(3.15, 10.35)
@@ -88,7 +88,7 @@ def _glyph(painter, kind, background):
         painter.drawPath(lead)
         return
     if kind == "save":
-        painter.setPen(Qt.NoPen)
+        painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(white)
         painter.drawRoundedRect(QRectF(3.05, 2.75, 9.9, 10.7), 1.15, 1.15)
         painter.setBrush(background)
@@ -119,7 +119,7 @@ def _glyph(painter, kind, background):
         _line(painter, 10.2, 5.2, 8.0, 3.0)
         return
     if kind == "run":
-        painter.setPen(Qt.NoPen)
+        painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(white)
         play = QPainterPath()
         play.moveTo(5.0, 3.5)
@@ -199,14 +199,14 @@ def _glyph(painter, kind, background):
         _line(painter, 12.0, 4.0, 4.0, 12.0)
         return
     if kind == "all":
-        painter.setPen(Qt.NoPen)
+        painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(white)
         painter.drawEllipse(QRectF(3.0, 3.0, 4.0, 4.0))
         painter.drawEllipse(QRectF(9.0, 3.0, 4.0, 4.0))
         painter.drawEllipse(QRectF(6.0, 9.0, 4.0, 4.0))
         return
     if kind == "point":
-        painter.setPen(Qt.NoPen)
+        painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(white)
         painter.drawEllipse(QRectF(5.0, 5.0, 6.0, 6.0))
         return
@@ -215,7 +215,7 @@ def _glyph(painter, kind, background):
         _line(painter, 3.0, 11.0, 13.0, 5.0)
         return
     if kind == "polygon":
-        painter.setPen(Qt.NoPen)
+        painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(white)
         tri = QPainterPath()
         tri.moveTo(8.0, 3.0)
@@ -235,7 +235,7 @@ def _glyph(painter, kind, background):
     painter.setBrush(background)
     painter.drawRoundedRect(QRectF(2.55, 5.15, 7.35, 8.25), 0.7, 0.7)
     if kind == "copy":
-        painter.setBrush(Qt.NoBrush)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
         _line(painter, 4.0, 7.85, 8.45, 7.85)
         _line(painter, 4.0, 9.75, 8.45, 9.75)
         _line(painter, 4.0, 11.55, 6.7, 11.55)
@@ -243,10 +243,10 @@ def _glyph(painter, kind, background):
 
 def letter_icon(letter, color, size=16):
     pix = QPixmap(size, size)
-    pix.fill(Qt.transparent)
+    pix.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pix)
-    painter.setRenderHint(QPainter.Antialiasing)
-    painter.setPen(Qt.NoPen)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setPen(Qt.PenStyle.NoPen)
     painter.setBrush(QColor(color))
     painter.drawRoundedRect(0, 0, size - 1, size - 1, 3, 3)
     painter.setPen(QColor("#ffffff"))
@@ -254,7 +254,7 @@ def letter_icon(letter, color, size=16):
     font.setBold(True)
     font.setPixelSize(max(8, size - 6))
     painter.setFont(font)
-    painter.drawText(pix.rect(), Qt.AlignCenter, letter)
+    painter.drawText(pix.rect(), Qt.AlignmentFlag.AlignCenter, letter)
     painter.end()
     return QIcon(pix)
 
