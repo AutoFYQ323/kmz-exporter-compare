@@ -1,6 +1,6 @@
 # KMZ Exporter & Compare
 
-QGIS plugin that exports layer groups to KMZ or KML, applies icons and balloons from a reference KMZ, and compares folder counts, names, and coordinates.
+QGIS plugin that exports layer groups to KMZ or KML with the same point icons and category colors as the map, applies icons and balloons from a reference KMZ, and compares folder counts, names, and coordinates.
 
 - **Page:** https://yuyouhui.online/tools/qgis/kmz-exporter-compare/
 - **QGIS:** 3.28 through 4.99 (Qt 5 and Qt 6)

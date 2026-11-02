@@ -2,10 +2,10 @@
 name=KMZ Exporter & Compare
 qgisMinimumVersion=3.28
 qgisMaximumVersion=4.99
-description=Export QGIS layer groups to KMZ/KML, reuse reference KMZ styles and icons, and compare folder counts, names, and coordinates against your project.
-about=One main window with five jobs: group-based KMZ/KML export (export names, display fields, categories, field picker, optional KML); manual or automatic style replacement from a reference KMZ; coordinate compare between an imported KML/KMZ and project layers with drag pairing, auto-match, and tolerance in the project CRS; layer compare for counts, Name values, or point/line/polygon totals with copy and report export. Home toolbar imports or exports settings bundles and can restore default page sizes. Layer utilities clear data, toggle edit mode, or copy the selected layer. UI in Chinese, English, Spanish, French, and Arabic. The first open follows the QGIS interface language and the choice is remembered. Export, manual-style, and coordinate-compare options are stored only when Save settings is clicked. Local files only; QGIS 3.28 through 4.99 (Qt 5 and Qt 6).
+description=Export QGIS layer groups to KMZ/KML with the same point icons and category colors as the map, reuse reference KMZ styles and icons, and compare folder counts, names, and coordinates against your project.
+about=One main window with five jobs: group-based KMZ/KML export whose point icons and category colors match the QGIS map (single, categorized, and graduated symbols are written as they appear; export names, display fields, categories, field picker, optional KML); manual or automatic style replacement from a reference KMZ; coordinate compare between an imported KML/KMZ and project layers with drag pairing, auto-match, and tolerance in the project CRS; layer compare for counts, Name values, or point/line/polygon totals with copy and report export. Home toolbar imports or exports settings bundles and can restore default page sizes. Layer utilities clear data, toggle edit mode, or copy the selected layer. UI in Chinese, English, Spanish, French, and Arabic. The first open follows the QGIS interface language and the choice is remembered. Export, manual-style, and coordinate-compare options are stored only when Save settings is clicked. Local files only; QGIS 3.28 through 4.99 (Qt 5 and Qt 6).
 icon=icon.png
-version=1.0.1
+version=1.0.2
 author=有余
 email=jd_sys_xx@163.com
 homepage=https://yuyouhui.online/tools/qgis/kmz-exporter-compare/
@@ -13,10 +13,8 @@ tracker=https://github.com/AutoFYQ323/kmz-exporter-compare/issues
 repository=https://github.com/AutoFYQ323/kmz-exporter-compare
 tags=kmz,kml,shapefile,shp,folder,compare,style,coordinates
 category=Vector
-changelog=1.0.1
-    Pass the plugins.qgis.org security scan and the Qt6 enum check. Local KML parsing and intentional error guards are marked for the scanner. Qt enums use the QGIS 4 scoped names and still run on QGIS 3.28. Field types stay QVariant.String, which the Qt6 checker accepts.
-    1.0.0
-    First public release. Group KMZ/KML export, manual and automatic reference styling, coordinate compare in the project CRS, layer compare with a text or CSV report, layer tools, settings import/export, restore default window sizes, and Chinese, English, Spanish, French, and Arabic UI.
+changelog=1.0.2
+    Export QGIS layer groups to KMZ or KML. Point icons and category colors match the QGIS map: single, categorized, and graduated symbols are written as they appear. Set export names, display fields, categories, and which attributes to include. Apply icons and balloons from a reference KMZ by hand or automatically. Compare coordinates in the project CRS, and compare layer counts, Name values, or point, line, and polygon totals. Chinese, English, Spanish, French, and Arabic.
 experimental=False
 deprecated=False
 server=False

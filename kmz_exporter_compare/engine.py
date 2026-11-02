@@ -17,6 +17,7 @@ from io import BytesIO
 from qgis.PyQt.QtCore import QDate, QDateTime, QPointF, QSize, Qt, QTime
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QComboBox
+from .i18n import tr
 from qgis.core import (
     NULL,
     QgsCoordinateReferenceSystem,
@@ -1934,7 +1935,7 @@ def _kmz_prepare_styles(ctx, layer, geomtype):
         renderer = None
     if renderer is None:
         state["fallback_id"] = _kmz_fallback_style(ctx, geomtype)
-        return state, "没有符号化"
+        return state, tr("没有符号化")
     render_type = ""
     try:
         render_type = renderer.type() or ""
@@ -1942,7 +1943,7 @@ def _kmz_prepare_styles(ctx, layer, geomtype):
         render_type = ""
     if render_type not in ("singleSymbol", "categorizedSymbol", "graduatedSymbol"):
         state["fallback_id"] = _kmz_fallback_style(ctx, geomtype)
-        return state, "样式不是单一、分类或分级"
+        return state, tr("样式不是单一、分类或分级")
     try:
         layer_opacity = float(layer.opacity()) if hasattr(layer, "opacity") else 1.0
     except Exception:
@@ -1980,7 +1981,7 @@ def _kmz_prepare_styles(ctx, layer, geomtype):
     expr = _kmz_class_expression(layer, renderer.classAttribute())
     if expr is None:
         state["fallback_id"] = _kmz_fallback_style(ctx, geomtype)
-        return state, "分类字段无法识别"
+        return state, tr("分类字段无法识别")
     exp_context = QgsExpressionContext()
     exp_context.appendScopes(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
     state["field_exp"] = expr
@@ -2339,7 +2340,7 @@ def export_project_kmz(output_path, show_summary, include_empty=False, on_progre
 
     collect(nodes)
     if not layers:
-        return False, "当前工程里没有可导出的矢量图层。"
+        return False, tr("当前工程里没有可导出的矢量图层。")
 
     token = (name_field or "Name").strip() or "Name"
     blank_name = (empty_name or "NULL").strip() or "NULL"
@@ -2397,17 +2398,17 @@ def export_project_kmz(output_path, show_summary, include_empty=False, on_progre
                     canceled["stop"] = True
                     return folders
             if layer is None or not layer.isValid():
-                skipped.append("{}（图层无效）".format(legend))
+                skipped.append(tr("{0}（图层无效）").format(legend))
                 continue
             try:
                 spatial = layer.isSpatial()
             except Exception:
                 spatial = True
             if not spatial:
-                skipped.append("{}（没有几何）".format(legend))
+                skipped.append(tr("{0}（没有几何）").format(legend))
                 continue
             if (not include_empty) and _layer_has_no_features(layer):
-                skipped.append("{}（元素为空）".format(legend))
+                skipped.append(tr("{0}（元素为空）").format(legend))
                 continue
             try:
                 geomtype = QgsWkbTypes.geometryType(layer.wkbType())
@@ -2418,7 +2419,7 @@ def export_project_kmz(output_path, show_summary, include_empty=False, on_progre
                 QgsWkbTypes.GeometryType.LineGeometry,
                 QgsWkbTypes.GeometryType.PolygonGeometry,
             ):
-                skipped.append("{}（没有可用的点线面）".format(legend))
+                skipped.append(tr("{0}（没有可用的点线面）").format(legend))
                 continue
             if layer_token:
                 name_attr = _kmz_match_name_field(layer, layer_token)
@@ -2438,7 +2439,7 @@ def export_project_kmz(output_path, show_summary, include_empty=False, on_progre
             except Exception as exc:
                 state, style_note = {"kind": None, "fallback_id": None}, str(exc)
             if style_note:
-                plain_style.append("{}（{}）".format(legend, style_note))
+                plain_style.append(tr("{0}（{1}）").format(legend, style_note))
                 if not state.get("fallback_id"):
                     state["fallback_id"] = _kmz_fallback_style(ctx, geomtype)
             if split_mode and split_mode != "qgis":
@@ -2496,15 +2497,15 @@ def export_project_kmz(output_path, show_summary, include_empty=False, on_progre
                 else:
                     folders.append(("layer", legend, [pm for _label, pm in rows]))
             elif not rows:
-                skipped.append("{}（没有可写出的要素）".format(legend))
+                skipped.append(tr("{0}（没有可写出的要素）").format(legend))
         return folders
 
     try:
         tree = convert(nodes)
         if canceled["stop"]:
-            return False, "已取消导出。文件可能不完整。"
+            return False, tr("已取消导出。文件可能不完整。")
         if not tree:
-            detail = "\n".join(skipped[:12]) if skipped else "没有写出任何图层。"
+            detail = "\n".join(skipped[:12]) if skipped else tr("没有写出任何图层。")
             return False, detail
         proj = QgsProject.instance()
         doc_name = (proj.baseName() or proj.title() or "QGIS").strip() or "QGIS"
@@ -2534,36 +2535,36 @@ def export_project_kmz(output_path, show_summary, include_empty=False, on_progre
         shutil.rmtree(tmpdir, ignore_errors=True)
 
     lines = [
-        "已导出 {} 个图层，共 {} 个要素。".format(exported_layers, feature_count),
-        "要素名称按每个图层填写的字段，不区分大小写。" if chosen is not None
-        else "要素名称字段：{}（不区分大小写）".format(token),
+        tr("已导出 {0} 个图层，共 {1} 个要素。").format(exported_layers, feature_count),
+        tr("要素名称按每个图层填写的字段，不区分大小写。") if chosen is not None
+        else tr("要素名称字段：{0}（不区分大小写）").format(token),
         output_path,
     ]
     if unsplit_note:
-        lines.append("这些图层不是分类或分级，没有按 QGIS 分类拆开：")
+        lines.append(tr("这些图层不是分类或分级，没有按 QGIS 分类拆开："))
         lines.extend(unsplit_note[:12])
         if len(unsplit_note) > 12:
-            lines.append("等 {} 个".format(len(unsplit_note)))
+            lines.append(tr("等 {0} 个").format(len(unsplit_note)))
     if bad_split:
-        lines.append("这些图层没有用来分类的字段，没有拆开：")
+        lines.append(tr("这些图层没有用来分类的字段，没有拆开："))
         lines.extend(bad_split[:12])
         if len(bad_split) > 12:
-            lines.append("等 {} 个".format(len(bad_split)))
+            lines.append(tr("等 {0} 个").format(len(bad_split)))
     if missing_name:
-        lines.append("这些图层没有可用的显示字段，要素名称写成 {}：".format(blank_name))
+        lines.append(tr("这些图层没有可用的显示字段，要素名称写成 {0}：").format(blank_name))
         lines.extend(missing_name[:12])
         if len(missing_name) > 12:
-            lines.append("等 {} 个".format(len(missing_name)))
+            lines.append(tr("等 {0} 个").format(len(missing_name)))
     if plain_style:
-        lines.append("这些图层没有按地图上色：")
+        lines.append(tr("这些图层没有按地图上色："))
         lines.extend(plain_style[:12])
         if len(plain_style) > 12:
-            lines.append("等 {} 个".format(len(plain_style)))
+            lines.append(tr("等 {0} 个").format(len(plain_style)))
     if skipped:
-        lines.append("未写入：")
+        lines.append(tr("未写入："))
         lines.extend(skipped[:12])
         if len(skipped) > 12:
-            lines.append("等 {} 个".format(len(skipped)))
+            lines.append(tr("等 {0} 个").format(len(skipped)))
     return True, "\n".join(lines)
 
 
@@ -3977,20 +3978,20 @@ def _kmz_style_replace(path_a, path_b, path_c, name_map=None):
     b_shared = _get_b_folder_shared_style(root_b)
     b_all_folder_names = _get_b_all_folder_names(root_b)
 
-    result_lines = ["【KMZ 样式替换结果】", ""]
-    result_lines.append("A 中有元素的图层：{}".format(
-        ", ".join(n for n, _, _ in a_folders) if a_folders else "（无）"))
-    result_lines.append("B 中有要素的图层：{}".format(
-        ", ".join(sorted(b_shared.keys())) if b_shared else "（无）"))
+    result_lines = [tr("【KMZ 样式替换结果】"), ""]
+    result_lines.append(tr("A 中有元素的图层：{0}").format(
+        ", ".join(n for n, _, _ in a_folders) if a_folders else tr("（无）")))
+    result_lines.append(tr("B 中有要素的图层：{0}").format(
+        ", ".join(sorted(b_shared.keys())) if b_shared else tr("（无）")))
     if name_map is not None:
-        result_lines.append("名称映射（源 → 参考）：")
+        result_lines.append(tr("名称映射（源 → 参考）："))
         seen_map = set()
         for n, _, _ in a_folders:
             if n in seen_map:
                 continue
             seen_map.add(n)
             mapped = (name_map.get(n) or "").strip()
-            result_lines.append("  {} → {}".format(n, mapped if mapped else "（未匹配）"))
+            result_lines.append(tr("  {0} → {1}").format(n, mapped if mapped else tr("（未匹配）")))
     result_lines.append("")
 
     doc_a = root_a.find(".//" + KML_NS + "Document")
@@ -4018,14 +4019,14 @@ def _kmz_style_replace(path_a, path_b, path_c, name_map=None):
     for folder_name, a_placemarks, orig_folder in a_folders:
         folder_in_c = _kml_find_first_folder_by_name(doc_c, folder_name)
         if folder_in_c is None:
-            result_lines.append("  [{}] 在副本中未找到同名节点，跳过".format(folder_name))
+            result_lines.append(tr("  [{0}] 在副本中未找到同名节点，跳过").format(folder_name))
             failed_folder_names.append(folder_name)
             continue
 
         if name_map is not None:
             b_lookup = (name_map.get(folder_name) or "").strip()
             if not b_lookup:
-                result_lines.append("  [{}] 未匹配参考图层，保留原样式".format(folder_name))
+                result_lines.append(tr("  [{0}] 未匹配参考图层，保留原样式").format(folder_name))
                 failed_folder_names.append(folder_name)
                 continue
         else:
@@ -4034,12 +4035,12 @@ def _kmz_style_replace(path_a, path_b, path_c, name_map=None):
         b_info = b_shared.get(b_lookup)
         if not b_info or b_info['normal_style'] is None:
             if b_lookup not in b_all_folder_names:
-                reason = "未找到映射图层 [{}]".format(b_lookup) if name_map is not None else "未找到同名图层"
+                reason = tr("未找到映射图层 [{0}]").format(b_lookup) if name_map is not None else tr("未找到同名图层")
             elif b_lookup not in b_shared:
-                reason = "找到图层 [{}]，但未识别到有几何要素".format(b_lookup) if name_map is not None else "找到同名图层，但未识别到有几何要素"
+                reason = tr("找到图层 [{0}]，但未识别到有几何要素").format(b_lookup) if name_map is not None else tr("找到同名图层，但未识别到有几何要素")
             else:
-                reason = "找到图层 [{}] 且有要素，但参考中无可用样式".format(b_lookup) if name_map is not None else "找到同名且有要素，但参考中无可用样式"
-            result_lines.append("  [{}] B中无对应样式 ({})".format(folder_name, reason))
+                reason = tr("找到图层 [{0}] 且有要素，但参考中无可用样式").format(b_lookup) if name_map is not None else tr("找到同名且有要素，但参考中无可用样式")
+            result_lines.append(tr("  [{0}] B中无对应样式 ({1})").format(folder_name, reason))
             failed_folder_names.append(folder_name)
             continue
 
@@ -4079,7 +4080,7 @@ def _kmz_style_replace(path_a, path_b, path_c, name_map=None):
             style_elements.append(sm_copy)
 
             pm_style_ref = "#" + new_sm_id
-            result_lines.append("  [{}] StyleMap: {} -> normal={}, highlight={}, A有{}个要素".format(
+            result_lines.append(tr("  [{0}] StyleMap: {1} -> normal={2}, highlight={3}, A有{4}个要素").format(
                 folder_name, new_sm_id, new_normal_id, new_hl_id, len(a_placemarks)))
             replaced_folder_names.append(folder_name)
         else:
@@ -4091,7 +4092,7 @@ def _kmz_style_replace(path_a, path_b, path_c, name_map=None):
             style_elements.append(s_copy)
 
             pm_style_ref = "#" + new_sid
-            result_lines.append("  [{}] Style: {}, A有{}个要素".format(
+            result_lines.append(tr("  [{0}] Style: {1}, A有{2}个要素").format(
                 folder_name, new_sid, len(a_placemarks)))
             replaced_folder_names.append(folder_name)
 
@@ -4191,30 +4192,30 @@ def _kmz_style_replace(path_a, path_b, path_c, name_map=None):
     if name_map is not None:
         unmatched_names = [n for n in failed_folder_names if not (name_map.get(n) or "").strip()]
         real_failed = [n for n in failed_folder_names if n not in unmatched_names]
-        result_lines.append("【汇总】共 {} 个图层，{} 成功，{} 未匹配（保留原样式），{} 失败。".format(
+        result_lines.append(tr("【汇总】共 {0} 个图层，{1} 成功，{2} 未匹配（保留原样式），{3} 失败。").format(
             total_folders, success_count, len(unmatched_names), len(real_failed)))
         if unmatched_names:
-            result_lines.append("未匹配图层：{}".format("、".join(unmatched_names)))
+            result_lines.append(tr("未匹配图层：{0}").format("、".join(unmatched_names)))
         if real_failed:
-            result_lines.append("未成功图层：{}".format("、".join(real_failed)))
+            result_lines.append(tr("未成功图层：{0}").format("、".join(real_failed)))
         elif failed_count == 0:
-            result_lines.append("全部成功。")
+            result_lines.append(tr("全部成功。"))
     else:
-        result_lines.append("【汇总】共 {} 个图层，{} 成功，{} 失败。".format(total_folders, success_count, failed_count))
+        result_lines.append(tr("【汇总】共 {0} 个图层，{1} 成功，{2} 失败。").format(total_folders, success_count, failed_count))
         if failed_count == 0:
-            result_lines.append("全部成功。")
+            result_lines.append(tr("全部成功。"))
         else:
-            result_lines.append("未成功图层：{}".format("、".join(failed_folder_names)))
+            result_lines.append(tr("未成功图层：{0}").format("、".join(failed_folder_names)))
     verify_failed_list = []
     if success_count > 0:
         try:
             ok_count, verify_failed_list = _kmz_verify_style_replaced(path_c, replaced_folder_names)
             if ok_count < success_count and verify_failed_list:
-                result_lines.append("【校验】未生效图层：{}".format("、".join(verify_failed_list)))
+                result_lines.append(tr("【校验】未生效图层：{0}").format("、".join(verify_failed_list)))
         except Exception as e:
-            result_lines.append("【校验】无法核对输出文件：{}".format(str(e)))
+            result_lines.append(tr("【校验】无法核对输出文件：{0}").format(str(e)))
     result_lines.append("")
-    result_lines.append("输出图层已导出：{}".format(path_c))
+    result_lines.append(tr("输出图层已导出：{0}").format(path_c))
 
     # 供调用方做表格展示：每图层（文件夹名）的图标样式采用与确认结果；folder_names 为 A 中有要素的图层名列表（顺序与 a_folders 一致）
     icon_by_folder = {}
@@ -4336,10 +4337,10 @@ def _kmz_apply_shared_style_to_folder(folder_in_c, folder_name, a_placemarks, b_
         folder_in_c.append(pm_copy)
 
     if a_placemarks:
-        result_line = "  [{}] {}: {}{}, 源数据{}个要素".format(
+        result_line = tr("  [{0}] {1}: {2}{3}, 源数据{4}个要素").format(
             folder_name, kind, pm_style_ref.lstrip("#"), extra, len(a_placemarks))
     else:
-        result_line = "  [{}] 空图层（保留参考样式与名称，无源数据）".format(folder_name)
+        result_line = tr("  [{0}] 空图层（保留参考样式与名称，无源数据）").format(folder_name)
     return pm_style_ref, result_line
 
 
@@ -4454,20 +4455,20 @@ def _kmz_style_replace_ref_structure(path_a, path_b, path_c, name_map, assignmen
 
     dropped_a = [n for n in a_order if n not in used_a]
 
-    result_lines = ["【手动样式替换结果】（按参考的结构与名称输出）", ""]
-    result_lines.append("数据仅来自源图层，参考中的原要素已全部清除。点/线名称仍用源数据。")
+    result_lines = [tr("【手动样式替换结果】（按参考的结构与名称输出）"), ""]
+    result_lines.append(tr("数据仅来自源图层，参考中的原要素已全部清除。点/线名称仍用源数据。"))
     if use_source_root_name:
         preview_root = _kml_source_root_display_name(root_a, path_a)
-        result_lines.append("最外层名称：{}（源 KMZ 文件名）".format(preview_root or "（未能读取）"))
+        result_lines.append(tr("最外层名称：{0}（源 KMZ 文件名）").format(preview_root or tr("（未能读取）")))
     else:
-        result_lines.append("最外层名称：沿用参考 KMZ")
-    result_lines.append("A 中有元素的图层：{}".format("、".join(a_order) if a_order else "（无）"))
-    result_lines.append("B 中图层：{}".format(
-        "、".join(_style_map_path_text(r["path"]) for r in b_layer_rows) if b_layer_rows else "（无）"))
-    result_lines.append("名称映射（源 → 参考）：")
+        result_lines.append(tr("最外层名称：沿用参考 KMZ"))
+    result_lines.append(tr("A 中有元素的图层：{0}").format("、".join(a_order) if a_order else tr("（无）")))
+    result_lines.append(tr("B 中图层：{0}").format(
+        "、".join(_style_map_path_text(r["path"]) for r in b_layer_rows) if b_layer_rows else tr("（无）")))
+    result_lines.append(tr("名称映射（源 → 参考）："))
     for a_name in a_order:
         mapped = (name_map.get(a_name) or "").strip()
-        result_lines.append("  {} → {}".format(a_name, mapped if mapped else "（未匹配，不导出）"))
+        result_lines.append(tr("  {0} → {1}").format(a_name, mapped if mapped else tr("（未匹配，不导出）")))
     result_lines.append("")
 
     doc_b = _kml_find_document(root_b)
@@ -4511,7 +4512,7 @@ def _kmz_style_replace_ref_structure(path_a, path_b, path_c, name_map, assignmen
             a_pms.extend(a_by_name.get(sn, []))
 
         if folder_in_c is None:
-            result_lines.append("  [{}] 参考结构中未找到该图层节点".format(label))
+            result_lines.append(tr("  [{0}] 参考结构中未找到该图层节点").format(label))
             failed_folder_names.append(label)
             icon_by_folder[label] = {
                 "used": False, "verify": "参考结构中未找到节点",
@@ -4521,7 +4522,7 @@ def _kmz_style_replace_ref_structure(path_a, path_b, path_c, name_map, assignmen
             continue
 
         if _kml_folder_has_nested_container(folder_in_c):
-            result_lines.append("  [{}] 分组文件夹，不套用点图层图标".format(label))
+            result_lines.append(tr("  [{0}] 分组文件夹，不套用点图层图标").format(label))
             icon_by_folder[label] = {
                 "used": False, "verify": "分组文件夹",
                 "total": len(a_pms), "exported": 0,
@@ -4532,12 +4533,12 @@ def _kmz_style_replace_ref_structure(path_a, path_b, path_c, name_map, assignmen
         b_info = b_shared_path.get(tuple(b_path)) or b_shared.get(b_name)
         if not b_info or b_info.get("normal_style") is None:
             if b_name not in b_all_folder_names:
-                reason = "未找到参考图层"
+                reason = tr("未找到参考图层")
             elif b_name not in b_shared:
-                reason = "参考中未识别到有几何要素"
+                reason = tr("参考中未识别到有几何要素")
             else:
-                reason = "参考中无可用样式"
-            result_lines.append("  [{}] 无法写入样式 ({})".format(label, reason))
+                reason = tr("参考中无可用样式")
+            result_lines.append(tr("  [{0}] 无法写入样式 ({1})").format(label, reason))
             failed_folder_names.append(label)
             icon_by_folder[label] = {
                 "used": False, "verify": "未找到参考样式",
@@ -4550,7 +4551,7 @@ def _kmz_style_replace_ref_structure(path_a, path_b, path_c, name_map, assignmen
             folder_in_c, b_name, a_pms, b_info, next_id, external_icon_files, doc_c=doc_c)
         result_lines.append(line.replace("[{}]".format(b_name), "[{}]".format(label), 1))
         if src_names:
-            result_lines.append("      源图层：{}".format("、".join(src_names)))
+            result_lines.append(tr("      源图层：{0}").format("、".join(src_names)))
         if a_pms:
             replaced_folder_names.append(b_name)
             verify = "已替换"
@@ -4569,44 +4570,44 @@ def _kmz_style_replace_ref_structure(path_a, path_b, path_c, name_map, assignmen
     _kmz_write_doc_to_kmz(path_a, path_b, path_c, doc_c, external_icon_files)
 
     result_lines.append("")
-    result_lines.append("【汇总】参考图层 {} 个，写入源数据 {} 个，空图层 {} 个，失败 {} 个；源图层未导出 {} 个。".format(
+    result_lines.append(tr("【汇总】参考图层 {0} 个，写入源数据 {1} 个，空图层 {2} 个，失败 {3} 个；源图层未导出 {4} 个。").format(
         len(b_layer_rows), len(replaced_folder_names), len(empty_folder_names),
         len(failed_folder_names), len(dropped_a)))
     if dropped_a:
-        result_lines.append("未导出的源图层：{}".format("、".join(dropped_a)))
+        result_lines.append(tr("未导出的源图层：{0}").format("、".join(dropped_a)))
     if empty_folder_names:
-        result_lines.append("空图层（无源数据）：{}".format("、".join(empty_folder_names)))
+        result_lines.append(tr("空图层（无源数据）：{0}").format("、".join(empty_folder_names)))
     if failed_folder_names:
-        result_lines.append("未成功图层：{}".format("、".join(failed_folder_names)))
+        result_lines.append(tr("未成功图层：{0}").format("、".join(failed_folder_names)))
 
     verify_failed_list = []
     if replaced_folder_names:
         try:
             ok_count, verify_failed_list = _kmz_verify_style_replaced(path_c, replaced_folder_names)
             if ok_count < len(replaced_folder_names) and verify_failed_list:
-                result_lines.append("【校验】未生效图层：{}".format("、".join(verify_failed_list)))
+                result_lines.append(tr("【校验】未生效图层：{0}").format("、".join(verify_failed_list)))
                 for fn in verify_failed_list:
                     info = icon_by_folder.get(fn) or {}
                     info["verify"] = "校验未生效"
                     icon_by_folder[fn] = info
         except Exception as e:
-            result_lines.append("【校验】无法核对输出文件：{}".format(str(e)))
+            result_lines.append(tr("【校验】无法核对输出文件：{0}").format(str(e)))
 
     try:
         out_names = _kmz_get_all_folder_names(path_c)
         missing = sorted(b_all_folder_names - out_names)
         extra = sorted(out_names - b_all_folder_names)
         if missing:
-            result_lines.append("【结构校验】输出缺少参考中的文件夹：{}".format("、".join(missing)))
+            result_lines.append(tr("【结构校验】输出缺少参考中的文件夹：{0}").format("、".join(missing)))
         if extra:
-            result_lines.append("【结构校验】输出多出参考中没有的文件夹：{}".format("、".join(extra)))
+            result_lines.append(tr("【结构校验】输出多出参考中没有的文件夹：{0}").format("、".join(extra)))
         if not missing and not extra:
-            result_lines.append("【结构校验】输出文件夹名称与参考一致。")
+            result_lines.append(tr("【结构校验】输出文件夹名称与参考一致。"))
     except Exception as e:
-        result_lines.append("【结构校验】无法核对：{}".format(str(e)))
+        result_lines.append(tr("【结构校验】无法核对：{0}").format(str(e)))
 
     result_lines.append("")
-    result_lines.append("输出图层已导出：{}".format(path_c))
+    result_lines.append(tr("输出图层已导出：{0}").format(path_c))
 
     for a_name in dropped_a:
         folder_names.append(a_name)

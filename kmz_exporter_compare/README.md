@@ -19,7 +19,7 @@ Restart QGIS. The menu and toolbar entry are **KMZ Exporter & Compare**. The win
 ## What you can do
 
 1. **Layer tools** (home, left): clear features, turn editing on, and save/close apply to every vector layer. Copy as empty and copy layer use only the layer selected in the Layers panel. Clear asks you to type OK, then confirm again.
-2. **Export KMZ:** choose layers, export names, display fields, categories, and an optional plain KML. The last save folder is remembered. You can cancel a long export.
+2. **Export KMZ:** choose layers, export names, display fields, categories, and an optional plain KML. Point icons and category colors match the QGIS map: single, categorized, and graduated symbols are written as they appear. The last save folder is remembered. You can cancel a long export.
 3. **Manual styling:** pair source and reference folders, then apply icons and balloons.
 4. **Automatic styling:** apply a reference KMZ when folder names already match.
 5. **Coordinate compare:** drag-pair layers, or auto-match names. Distance uses the **project CRS**. Folder layers without geometry are hidden. **Empty layers** (bottom right) shows or hides layers with zero features; they are shown by default. Results go into a **KMZ comparison** group unless **Add to project** is off. **Clear pairs** removes every pair.
