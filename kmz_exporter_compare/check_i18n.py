@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Fail when a visible string has no English, Spanish, French, or Arabic line.
+"""Fail when a visible string has no English, Spanish, French, Arabic, Italian, German, Japanese, or Korean line.
 
 Same idea as the Super Attribute Table check: every tr() key must exist in all
 four catalogs, and the placeholders must match. Chinese literals on the job
@@ -42,12 +42,22 @@ def _load(name):
 def _catalogs():
     data = _load("catalog_data.py")
     gap = _load("catalog_gap.py")
+    extra = _load("catalog_extra.py")
     en, es, fr, ar = dict(data.EN), dict(data.ES), dict(data.FR), dict(data.AR)
     en.update(gap.EN)
     es.update(gap.ES)
     fr.update(gap.FR)
     ar.update(gap.AR)
-    return en, es, fr, ar
+    return (
+        ("en", en),
+        ("es", es),
+        ("fr", fr),
+        ("ar", ar),
+        ("it", dict(extra.IT)),
+        ("de", dict(extra.DE)),
+        ("ja", dict(extra.JA)),
+        ("ko", dict(extra.KO)),
+    )
 
 
 def _docstrings(tree):
@@ -89,8 +99,8 @@ def _ui_literals(tree):
 
 
 def main():
-    en, es, fr, ar = _catalogs()
-    catalogs = (("en", en), ("es", es), ("fr", fr), ("ar", ar))
+    catalogs = _catalogs()
+    en = catalogs[0][1]
     missing = []
     bad_place = []
     seen = set()

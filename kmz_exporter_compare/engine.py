@@ -17,6 +17,7 @@ from io import BytesIO
 from qgis.PyQt.QtCore import QDate, QDateTime, QPointF, QSize, Qt, QTime
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QComboBox
+from .export_groups import count_bare_folders, should_write_empty_group, tree_has_group
 from .i18n import tr
 from qgis.core import (
     NULL,
@@ -32,6 +33,7 @@ from qgis.core import (
     QgsVectorFileWriter,
     QgsVectorLayer,
     QgsWkbTypes,
+    QgsLayerTreeGroup,
 )
 
 SETTINGS_KEY = "ITTP"
@@ -1377,10 +1379,9 @@ def _export_vector_tree():
             if isinstance(layer, QgsVectorLayer):
                 items.append({"type": "layer", "name": name or layer.name() or "图层", "layer": layer})
                 continue
-            if hasattr(child, "children"):
+            if isinstance(child, QgsLayerTreeGroup):
                 kids = walk(child)
-                if kids:
-                    items.append({"type": "group", "name": name or "组", "children": kids})
+                items.append({"type": "group", "name": name or "组", "children": kids})
         return items
 
     return walk(root)
@@ -2339,13 +2340,17 @@ def export_project_kmz(output_path, show_summary, include_empty=False, on_progre
                 collect(item.get("children") or [])
 
     collect(nodes)
-    if not layers:
+    if not layers and not tree_has_group(nodes):
         return False, tr("当前工程里没有可导出的矢量图层。")
 
     token = (name_field or "Name").strip() or "Name"
     blank_name = (empty_name or "NULL").strip() or "NULL"
     chosen = None if selection is None else (selection.get("layers") or {})
     group_names = {} if selection is None else (selection.get("groups") or {})
+    if selection is None:
+        group_checked = None
+    else:
+        group_checked = set(selection.get("checked_groups") or [])
     tmpdir = tempfile.mkdtemp(prefix="ittp_kmz_")
     ctx = {"n": 0, "styles": [], "icons": [], "tmpdir": tmpdir, "schemas": [], "schema_n": 0}
     skipped = []
@@ -2356,6 +2361,7 @@ def export_project_kmz(output_path, show_summary, include_empty=False, on_progre
     feature_count = 0
     layer_count = 0
     exported_layers = 0
+    bare_folders = {"n": 0}
     dest = QgsCoordinateReferenceSystem("EPSG:4326")
     canceled = {"stop": False}
 
@@ -2367,9 +2373,12 @@ def export_project_kmz(output_path, show_summary, include_empty=False, on_progre
         for item in items:
             if item.get("type") == "group":
                 children = convert(item.get("children") or [])
+                path = _kmz_path_key(item.get("path"))
+                gname = group_names.get(path) or item.get("name") or "组"
                 if children:
-                    gname = group_names.get(_kmz_path_key(item.get("path"))) or item.get("name") or "组"
                     folders.append(("group", gname, children))
+                elif should_write_empty_group(item, path, group_checked):
+                    folders.append(("group", gname, []))
                 continue
             layer = item.get("layer")
             legend = item.get("name") or (layer.name() if layer is not None else "") or "图层"
@@ -2502,6 +2511,7 @@ def export_project_kmz(output_path, show_summary, include_empty=False, on_progre
 
     try:
         tree = convert(nodes)
+        bare_folders["n"] = count_bare_folders(tree)
         if canceled["stop"]:
             return False, tr("已取消导出。文件可能不完整。")
         if not tree:
@@ -2540,6 +2550,8 @@ def export_project_kmz(output_path, show_summary, include_empty=False, on_progre
         else tr("要素名称字段：{0}（不区分大小写）").format(token),
         output_path,
     ]
+    if bare_folders["n"]:
+        lines.insert(1, tr("已写出 {0} 个空文件夹。").format(bare_folders["n"]))
     if unsplit_note:
         lines.append(tr("这些图层不是分类或分级，没有按 QGIS 分类拆开："))
         lines.extend(unsplit_note[:12])

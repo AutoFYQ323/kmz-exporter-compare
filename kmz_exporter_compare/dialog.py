@@ -4,7 +4,7 @@
 import os
 
 from qgis.PyQt.QtCore import QSettings, QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtGui import QFont, QFontMetrics, QIcon
 from qgis.PyQt.QtWidgets import (
     QAction,
     QCheckBox,
@@ -36,7 +36,7 @@ from . import layer_ops
 from .help_dialog import show_help
 from .qtutil import pointer_pos, run_menu
 from .button_marks import decorate_button, mark_icon
-from .i18n import current_language, language_changed, set_language, tr
+from .i18n import current_language, known_languages, language_changed, set_language, text_in, tr
 from .i18n.stamp import retranslate_tree, stamp_tree
 
 _SETTINGS = "KMZExporterCompare"
@@ -180,12 +180,24 @@ QLabel { color: #37474f; font-size: 12px; background: transparent; }
 """
 
 _LANGUAGES = (
+    ("en", "English"),
     ("zh", "中文"),
-    ("en", "英文"),
-    ("es", "西班牙文"),
-    ("fr", "法文"),
-    ("ar", "阿拉伯文"),
+    ("es", "Español"),
+    ("fr", "Français"),
+    ("ar", "العربية"),
+    ("it", "Italiano"),
+    ("de", "Deutsch"),
+    ("ja", "日本語"),
+    ("ko", "한국어"),
 )
+_HUB_CARDS = (
+    ("导出 KMZ", "按组写出，可另存 KML"),
+    ("手动样式", "配对后再替换样式"),
+    ("自动样式", "按文件夹名套参考样式"),
+    ("坐标对比", "仅一侧，或同名移动"),
+    ("图层对比", "数量、Name 或点线面"),
+)
+_HOME_OPS = ("清空数据", "打开编辑", "保存关闭", "复制为空", "复制图层", "确定")
 
 
 def _plugin_version():
@@ -222,6 +234,36 @@ def _page_size(key, raw):
         if width >= 320 and height >= 240:
             return width, height
     return _PAGE_SIZE.get(key, (350, 320))
+
+
+def _advance(metrics, text):
+    if hasattr(metrics, "horizontalAdvance"):
+        return metrics.horizontalAdvance(text)
+    return metrics.boundingRect(text).width()
+
+
+_HOME_EDGE = 34  # dialog margins, column gap, opFrame padding
+
+
+def home_column_mins(list_font, title_font, desc_font):
+    """Left column width for layer ops; minimum right column width for hub buttons."""
+    list_metrics = QFontMetrics(list_font)
+    title_metrics = QFontMetrics(title_font)
+    desc_metrics = QFontMetrics(desc_font)
+    left = 0
+    right = 0
+    for lang in known_languages():
+        for msgid in _HOME_OPS:
+            left = max(left, _advance(list_metrics, text_in(lang, msgid)))
+        for title, desc in _HUB_CARDS:
+            title_w = _advance(title_metrics, text_in(lang, title)) + 20 + 6
+            desc_w = _advance(desc_metrics, text_in(lang, desc))
+            right = max(right, title_w, desc_w)
+    left += 16 + 36
+    # hub frame margins 6+6 and a little room so French titles are not clipped
+    right += 12 + 12 + 8
+    total = left + right + _HOME_EDGE
+    return left, right, total
 
 
 def _settings():
@@ -408,6 +450,11 @@ class MainDialog(QDialog):
         self._block = False
         self._page_key = "home"
         self._shown = False
+        self._home_pos = None
+        self._home_min_w = 350
+        self._home_left_w = 0
+        self._home_right_min = 0
+        self._op_frame = None
         self._pages = {}
         root = QVBoxLayout(self)
         root.setContentsMargins(8, 6, 8, 8)
@@ -461,6 +508,10 @@ class MainDialog(QDialog):
         if not self._shown:
             self._shown = True
             self._apply_size(self._page_key)
+            if self._page_key == "home":
+                self._remember_home_pos()
+            else:
+                self._center_on_qgis()
 
     def closeEvent(self, event):
         from .origin_pages import disconnect_coord_page
@@ -473,8 +524,11 @@ class MainDialog(QDialog):
     def open_page(self, key):
         if key not in self._pages:
             key = "home"
+        leaving = self._page_key
         if self.isVisible():
-            self._store_size(self._page_key)
+            self._store_size(leaving)
+            if leaving == "home":
+                self._remember_home_pos()
         self._page_key = key
         self.stack.setCurrentWidget(self._pages[key])
         self.toolbar.setVisible(key == "home")
@@ -483,8 +537,54 @@ class MainDialog(QDialog):
             reload_coord_project(self)
         if self.isVisible() or self._shown:
             self._apply_size(key)
+            if key == "home":
+                self._restore_home_pos()
+            else:
+                self._center_on_qgis()
             from .button_marks import refit_buttons
             refit_buttons(self)
+
+    def _remember_home_pos(self):
+        self._home_pos = self.pos()
+
+    def _restore_home_pos(self):
+        if self._home_pos is not None:
+            self.move(self._home_pos)
+
+    def _center_on_qgis(self):
+        host = self.parentWidget()
+        try:
+            from qgis.utils import iface
+            main = iface.mainWindow()
+            if main is not None:
+                host = main
+        except Exception:  # nosec B110
+            pass
+        if host is not None:
+            frame = host.frameGeometry()
+        else:
+            screen = self.screen()
+            frame = screen.availableGeometry() if screen is not None else None
+        if frame is None:
+            return
+        geo = self.frameGeometry()
+        geo.moveCenter(frame.center())
+        screen = self.screen() if self.screen() is not None else (host.screen() if host is not None else None)
+        if screen is not None:
+            avail = screen.availableGeometry()
+            if geo.width() >= avail.width():
+                geo.moveLeft(avail.left())
+            elif geo.left() < avail.left():
+                geo.moveLeft(avail.left())
+            elif geo.right() > avail.right():
+                geo.moveRight(avail.right())
+            if geo.height() >= avail.height():
+                geo.moveTop(avail.top())
+            elif geo.top() < avail.top():
+                geo.moveTop(avail.top())
+            elif geo.bottom() > avail.bottom():
+                geo.moveBottom(avail.bottom())
+        self.move(geo.topLeft())
 
     def _store_size(self, key):
         store = _settings()
@@ -512,6 +612,11 @@ class MainDialog(QDialog):
                 raw = ""
         store.endGroup()
         width, height = _page_size(key, raw)
+        if key == "home":
+            width = max(width, self._home_min_w)
+            self.setMinimumWidth(self._home_min_w)
+        else:
+            self.setMinimumWidth(320)
         self.resize(width, height)
 
     def _build_home(self):
@@ -521,6 +626,8 @@ class MainDialog(QDialog):
         layout.setSpacing(6)
         group = QFrame()
         group.setObjectName("opFrame")
+        self._op_frame = group
+        group.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         group_layout = QVBoxLayout(group)
         group_layout.setContentsMargins(6, 6, 6, 6)
         self.op_list = QListWidget()
@@ -548,7 +655,7 @@ class MainDialog(QDialog):
         confirm = self._button("确定", self._on_confirm, mark_key="ok")
         confirm.setObjectName("homeOk")
         group_layout.addWidget(confirm)
-        layout.addWidget(group, 1)
+        layout.addWidget(group, 0)
 
         cards = (
             ("export", "导出 KMZ", "按组写出，可另存 KML", "hub_export"),
@@ -564,7 +671,29 @@ class MainDialog(QDialog):
             button.clicked.connect(lambda page=key: self.open_page(page))
             right.addWidget(button, 1)
         layout.addLayout(right, 1)
+        self._apply_home_mins()
         self._add_page("home", page)
+
+    def _apply_home_mins(self):
+        title_font = QFont(self.font())
+        title_font.setPixelSize(13)
+        title_font.setBold(True)
+        desc_font = QFont(self.font())
+        desc_font.setPixelSize(10)
+        left, right, total = home_column_mins(self.op_list.font(), title_font, desc_font)
+        self._home_left_w = left
+        self._home_right_min = right
+        self._home_min_w = max(350, total)
+        frame = self._op_frame or self.findChild(QFrame, "opFrame")
+        if frame is not None:
+            frame.setFixedWidth(left)
+        for button in self.findChildren(QFrame):
+            if button.objectName() == "hubBtn":
+                button.setMinimumWidth(right)
+        if self._page_key == "home":
+            width = max(self.width(), self._home_min_w)
+            if width != self.width():
+                self.resize(width, self.height())
 
     def _build_export_page(self):
         from .origin_pages import build_export_page
@@ -668,8 +797,14 @@ class MainDialog(QDialog):
         from .origin_pages import BUNDLE_PARTS, save_bundle
 
         menu = QMenu(self)
+        icons = {
+            "all": self.act_export_icon.icon(),
+            "export": mark_icon("hub_export", 16),
+            "manual": mark_icon("hub_manual", 16),
+            "coords": mark_icon("hub_coords", 16),
+        }
         for key, title in BUNDLE_PARTS:
-            action = menu.addAction(tr(title))
+            action = menu.addAction(icons.get(key, QIcon()), tr(title))
             action.triggered.connect(lambda _checked=False, part=key: save_bundle(self, part))
         anchor = self.toolbar.widgetForAction(self.act_export_icon)
         if anchor is not None:
@@ -706,8 +841,8 @@ class MainDialog(QDialog):
     def _show_language_menu(self):
         menu = QMenu(self)
         current = current_language()
-        for key, msgid in _LANGUAGES:
-            action = menu.addAction(self._language_icon(key), tr(msgid))
+        for key, label in _LANGUAGES:
+            action = menu.addAction(self._language_icon(key), label)
             action.setCheckable(True)
             action.setChecked(key == current)
             action.triggered.connect(lambda _checked=False, lang=key: set_language(lang))
@@ -739,6 +874,8 @@ class MainDialog(QDialog):
         panel = getattr(self, "_export_panel", None)
         if panel is not None and hasattr(panel, "_refresh_unconfigured"):
             panel._refresh_unconfigured()
+        if panel is not None and hasattr(panel, "refresh_empty_group_tips"):
+            panel.refresh_empty_group_tips()
         from .origin_pages import _refresh_tolerance_label, _set_coord_mode
         if getattr(self, "_coord_mode", None):
             _set_coord_mode(self, self._coord_mode)
@@ -748,6 +885,7 @@ class MainDialog(QDialog):
                 desc = widget.property("hubDesc")
                 if desc:
                     widget.setToolTip(tr(str(desc)))
+        self._apply_home_mins()
 
     def _on_confirm(self):
         item = self.op_list.currentItem()

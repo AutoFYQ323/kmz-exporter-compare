@@ -1,19 +1,24 @@
 # -*- coding: utf-8 -*-
-"""UI strings. Chinese is the source text. Other languages are filled in later.
+"""UI strings. Chinese is the source text.
 
-Five languages, matching Field Remarks Table: zh, en, es, fr, ar.
-Other languages are in catalog_data.py; untranslated lines still show Chinese.
+Nine languages: en, zh, es, fr, ar, it, de, ja, ko.
+Non-Chinese UI falls back to English when a line has no translation.
 Do not hard-code labels in dialogs; call tr() so a language menu can be added
-without rewriting the windows.
+without rewriting the windows. Language names in the menu are endonyms and
+are not passed through tr().
 """
 
 from qgis.PyQt.QtCore import QLocale, QObject, QSettings, pyqtSignal
 
 from .catalog import (
     LANG_AR,
+    LANG_DE,
     LANG_EN,
     LANG_ES,
     LANG_FR,
+    LANG_IT,
+    LANG_JA,
+    LANG_KO,
     LANG_ZH,
     detect_initial_language,
     known_languages,
@@ -73,7 +78,7 @@ def set_language(lang):
     text = str(lang or "").strip().lower().replace("_", "-")
     primary = text.split("-", 1)[0]
     if primary not in known_languages():
-        primary = LANG_ZH
+        primary = LANG_EN
     try:
         QSettings().setValue(_SETTINGS, primary)
     except Exception:  # nosec B110
@@ -82,11 +87,23 @@ def set_language(lang):
     return primary
 
 
-def tr(msgid, *args, **kwargs):
+def _resolved_text(language, msgid):
     text = msgid if isinstance(msgid, str) else str(msgid)
-    mapped = text_for(current_language(), text)
+    if language in (LANG_ZH, "", None):
+        return text
+    mapped = text_for(language, text)
     if mapped:
-        text = mapped
+        return mapped
+    return text_for(LANG_EN, text) or text
+
+
+def text_in(language, msgid):
+    """Return msgid in language. Non-Chinese falls back to English."""
+    return _resolved_text(language, msgid)
+
+
+def tr(msgid, *args, **kwargs):
+    text = _resolved_text(current_language(), msgid if isinstance(msgid, str) else str(msgid))
     if args or kwargs:
         try:
             text = text % (args if args else kwargs) if args else text % kwargs
@@ -121,13 +138,19 @@ def localize_button_box(box):
 
 __all__ = [
     "LANG_AR",
+    "LANG_DE",
     "LANG_EN",
     "LANG_ES",
     "LANG_FR",
+    "LANG_IT",
+    "LANG_JA",
+    "LANG_KO",
     "LANG_ZH",
     "current_language",
+    "known_languages",
     "language_changed",
     "localize_button_box",
     "set_language",
+    "text_in",
     "tr",
 ]

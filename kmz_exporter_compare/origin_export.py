@@ -33,6 +33,16 @@ from .engine import (
 )
 
 SETTINGS_KEY = "KMZExporterCompare"
+_EMPTY_GROUP_TIP = "没有矢量图层的文件夹。勾选后导出为空文件夹。"
+
+
+def _group_has_layer(item):
+    for child in item.get("children") or []:
+        if child.get("type") == "layer":
+            return True
+        if child.get("type") == "group" and _group_has_layer(child):
+            return True
+    return False
 
 
 class NoWheelComboBox(QComboBox):
@@ -472,6 +482,9 @@ class KmzExportDialog(QWidget):
                     font.setBold(True)
                     node.setFont(1, font)
                     node.setForeground(1, QBrush(self._FOLDER_COLOR))
+                    if not _group_has_layer(item):
+                        node.setData(0, Qt.ItemDataRole.UserRole + 9, "empty-group")
+                        node.setToolTip(1, tr(_EMPTY_GROUP_TIP))
                 else:
                     layer = item.get("layer")
                     count = _kmz_feature_count(layer)
@@ -568,6 +581,19 @@ class KmzExportDialog(QWidget):
         self._block = False
         self._refresh_marks()
         self._refresh_unconfigured()
+        self.refresh_empty_group_tips()
+
+    def refresh_empty_group_tips(self):
+        tip = tr(_EMPTY_GROUP_TIP)
+
+        def walk(item):
+            for i in range(item.childCount()):
+                child = item.child(i)
+                if child.data(0, Qt.ItemDataRole.UserRole + 9) == "empty-group":
+                    child.setToolTip(1, tip)
+                walk(child)
+
+        walk(self.tree.invisibleRootItem())
 
     def _select_combo(self, combo, field_name):
         if combo is None:
@@ -824,6 +850,7 @@ class KmzExportDialog(QWidget):
     def plan(self):
         layers = {}
         groups = {}
+        checked_groups = []
 
         def walk(item):
             for i in range(item.childCount()):
@@ -831,7 +858,10 @@ class KmzExportDialog(QWidget):
                 kind = child.data(0, Qt.ItemDataRole.UserRole + 1)
                 export_name = self._name_text(child).strip()
                 if kind == "group":
-                    groups[child.data(0, Qt.ItemDataRole.UserRole)] = export_name
+                    path = child.data(0, Qt.ItemDataRole.UserRole) or ""
+                    groups[path] = export_name
+                    if child.checkState(0) != Qt.CheckState.Unchecked:
+                        checked_groups.append(path)
                     walk(child)
                     continue
                 if child.checkState(0) != Qt.CheckState.Checked:
@@ -850,7 +880,7 @@ class KmzExportDialog(QWidget):
                 }
 
         walk(self.tree.invisibleRootItem())
-        return {"layers": layers, "groups": groups}
+        return {"layers": layers, "groups": groups, "checked_groups": checked_groups}
 
     def _snapshot(self):
         layers = []
@@ -1052,8 +1082,9 @@ class KmzExportDialog(QWidget):
         self._apply_config(data, quiet=False)
 
     def _accept_export(self):
-        if not self.plan()["layers"]:
-            QMessageBox.warning(self, tr("导出 KMZ"), tr("请至少勾选一个图层。"))
+        planned = self.plan()
+        if not planned.get("layers") and not planned.get("checked_groups"):
+            QMessageBox.warning(self, tr("导出 KMZ"), tr("请至少勾选一个图层或文件夹。"))
             return
         proj = QgsProject.instance()
         base_name = (proj.baseName() or "导出").strip() or "导出"

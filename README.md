@@ -5,7 +5,7 @@ QGIS plugin that exports layer groups to KMZ or KML with the same point icons an
 - **Page:** https://yuyouhui.online/tools/qgis/kmz-exporter-compare/
 - **QGIS:** 3.28 through 4.99 (Qt 5 and Qt 6)
 - **License:** GNU GPL v2 (`kmz_exporter_compare/LICENSE`)
-- **Languages:** Chinese, English, Spanish, French, Arabic. The first open follows the QGIS interface language, then the choice is remembered.
+- **Languages:** English, 中文, Español, Français, العربية, Italiano, Deutsch, 日本語, 한국어. The menu shows each name in that language. The first open follows the QGIS interface language, then the choice is remembered.
 - **Data:** local project layers and files you choose. This plugin does not download data or sign in to a website.
 
 Install the folder `kmz_exporter_compare` from a release zip, or copy it to `[QGIS profile]/python/plugins/kmz_exporter_compare`. Quit QGIS completely and open it again.

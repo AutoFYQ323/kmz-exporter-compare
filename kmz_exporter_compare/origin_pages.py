@@ -298,7 +298,12 @@ def show_style_result(parent, report_rows, text_summary, title):
 
     copy_table.clicked.connect(_copy_table)
     copy_text = styled_button("复制详情")
-    copy_text.clicked.connect(lambda: (QApplication.clipboard().setText(text_summary or ""), _msg(dialog, "提示", "已复制到剪贴板")))
+    def _copy_detail():
+        body = "\n".join(_show_phrase(line) for line in (text_summary or "").split("\n"))
+        QApplication.clipboard().setText(body)
+        _msg(dialog, "提示", "已复制到剪贴板")
+
+    copy_text.clicked.connect(_copy_detail)
     buttons.addWidget(copy_table)
     buttons.addWidget(copy_text)
     buttons.addStretch(1)
@@ -590,8 +595,8 @@ def build_export_page(host):
 
 def run_export(host, dialog):
     selection = dialog.plan()
-    if not selection.get("layers"):
-        _msg(host, "导出 KMZ", "请至少勾选一个图层。", warning=True)
+    if not selection.get("layers") and not selection.get("checked_groups"):
+        _msg(host, "导出 KMZ", "请至少勾选一个图层或文件夹。", warning=True)
         return
     total = max(len(selection.get("layers") or {}), 1)
     progress = QProgressDialog(tr("正在导出 KMZ..."), tr("取消"), 0, total, host)
@@ -809,7 +814,7 @@ def run_auto(host):
     if not host._kmz_style_b or not os.path.isfile(host._kmz_style_b):
         _msg(host, "提示", "请先选择参考图层文件。", warning=True)
         return
-    out_path = _pick_kmz_or_kml(host, "导出输出图层")
+    out_path = _pick_kmz_or_kml(host, tr("导出输出图层"))
     if not out_path:
         return
     QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
@@ -938,7 +943,7 @@ def run_manual(host):
     accepted = run_dialog(dialog) == QDialog.DialogCode.Accepted
     if not accepted:
         return
-    out_path = _pick_kmz_or_kml(host, "导出输出图层")
+    out_path = _pick_kmz_or_kml(host, tr("导出输出图层"))
     if not out_path:
         return
     QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)

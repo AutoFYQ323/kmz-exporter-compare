@@ -177,6 +177,9 @@ def _build():
     add("样式校验未通过", "Style check failed", "Falló la comprobación de estilo", "Contrôle de style échoué", "فشل فحص النمط")
     add("来自参考DOC", "From reference DOC", "Desde el DOC de referencia", "Depuis le DOC de référence", "من DOC المرجع")
     add("已套用参考样式", "Reference style applied", "Estilo de referencia aplicado", "Style de référence appliqué", "تم تطبيق نمط المرجع")
+    add("默认样式", "Default style", "Estilo predeterminado", "Style par défaut", "النمط الافتراضي")
+    add("默认输出", "Default output", "Salida predeterminada", "Sortie par défaut", "المخرجات الافتراضية")
+    add("默认DOC结构", "Default DOC layout", "Estructura DOC predeterminada", "Structure DOC par défaut", "بنية DOC الافتراضية")
     add("未找到参考样式(默认)", "Reference style not found (default)", "Estilo de referencia no encontrado (predeterminado)", "Style de référence introuvable (défaut)", "نمط المرجع غير موجود (افتراضي)")
     add("未找到参考样式", "Reference style not found", "Estilo de referencia no encontrado", "Style de référence introuvable", "نمط المرجع غير موجود")
     add("未使用参考", "Reference not used", "Referencia no usada", "Référence non utilisée", "المرجع غير مستخدم")
@@ -282,6 +285,9 @@ def _build():
     add("空图层（无源数据）", "Empty layer (no source data)", "Capa vacía (sin datos de origen)", "Couche vide (sans données source)", "طبقة فارغة (بلا بيانات مصدر)")
     add("未导出（未匹配）", "Not exported (unmatched)", "No exportada (sin coincidencia)", "Non exportée (non appariée)", "لم تُصدَّر (غير مقترنة)")
     add("未导出", "Not exported", "No exportada", "Non exportée", "لم تُصدَّر")
+    add("已写出 {0} 个空文件夹。", "Wrote {0} empty folders.", "Se escribieron {0} carpetas vacías.", "{0} dossiers vides écrits.", "كُتبت {0} مجلدات فارغة.")
+    add("没有矢量图层的文件夹。勾选后导出为空文件夹。", "A folder with no vector layer. If checked, it is exported as an empty folder.", "Carpeta sin capa vectorial. Si está marcada, se exporta vacía.", "Dossier sans couche vectorielle. S’il est coché, il est exporté vide.", "مجلد بلا طبقة متجهة. عند تحديده يُصدَّر فارغاً.")
+    add("日本語", "日本語", "日本語", "日本語", "日本語")
     return EN, ES, FR, AR
 
 

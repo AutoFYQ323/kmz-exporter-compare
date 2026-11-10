@@ -1,14 +1,22 @@
 # -*- coding: utf-8 -*-
-"""Build a plugin zip for QGIS. Run from this folder (the parent of kmz_exporter_compare)."""
+"""Build a plugin zip for QGIS.
+
+Run from the project folder or from TEST:
+
+    python TEST/pack_release.py
+
+The zip is written in TEST. Its top folder is kmz_exporter_compare.
+"""
 
 import pathlib
 import subprocess
 import sys
 import zipfile
 
-ROOT = pathlib.Path(__file__).resolve().parent
+HERE = pathlib.Path(__file__).resolve().parent
+ROOT = HERE.parent
 PLUGIN = ROOT / "kmz_exporter_compare"
-OUT = ROOT / "kmz_exporter_compare.zip"
+OUT = HERE / "kmz_exporter_compare.zip"
 SKIP_DIRS = {"__pycache__", "tests"}
 SKIP_FILES = {"check_i18n.py", "README.md"}
 
