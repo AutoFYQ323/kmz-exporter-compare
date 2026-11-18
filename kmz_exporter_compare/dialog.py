@@ -10,31 +10,21 @@ from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
-    QFileDialog,
     QFrame,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QLineEdit,
-    QListWidget,
-    QListWidgetItem,
     QMenu,
-    QMessageBox,
-    QProgressDialog,
     QPushButton,
     QRadioButton,
     QSizePolicy,
     QStackedWidget,
-    QTextEdit,
     QToolBar,
-    QTreeWidget,
-    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
-from . import layer_ops
 from .help_dialog import show_help
-from .qtutil import pointer_pos, run_menu
+from .qtutil import apply_taskbar_window, pointer_pos, run_menu
 from .button_marks import decorate_button, mark_icon
 from .i18n import current_language, known_languages, language_changed, set_language, text_in, tr
 from .i18n.stamp import retranslate_tree, stamp_tree
@@ -195,9 +185,8 @@ _HUB_CARDS = (
     ("手动样式", "配对后再替换样式"),
     ("自动样式", "按文件夹名套参考样式"),
     ("坐标对比", "仅一侧，或同名移动"),
-    ("图层对比", "数量、Name 或点线面"),
+    ("图层对比", "数量与 Name、字段或点线面"),
 )
-_HOME_OPS = ("清空数据", "打开编辑", "保存关闭", "复制为空", "复制图层", "确定")
 
 
 def _plugin_version():
@@ -213,14 +202,14 @@ def _plugin_version():
 
 
 _PAGE_SIZE = {
-    "home": (350, 320),
+    "home": (220, 320),
     "export": (800, 700),
     "names": (640, 520),
     "auto": (560, 460),
     "manual": (560, 480),
     "coords": (800, 700),
 }
-_LAYOUT_ID = "14"
+_LAYOUT_ID = "15"
 
 
 def _page_size(key, raw):
@@ -242,28 +231,23 @@ def _advance(metrics, text):
     return metrics.boundingRect(text).width()
 
 
-_HOME_EDGE = 34  # dialog margins, column gap, opFrame padding
+_HOME_EDGE = 16  # dialog left/right margins
 
 
-def home_column_mins(list_font, title_font, desc_font):
-    """Left column width for layer ops; minimum right column width for hub buttons."""
-    list_metrics = QFontMetrics(list_font)
+def home_column_mins(title_font, desc_font):
+    """Minimum home width from the five hub buttons alone."""
     title_metrics = QFontMetrics(title_font)
     desc_metrics = QFontMetrics(desc_font)
-    left = 0
     right = 0
     for lang in known_languages():
-        for msgid in _HOME_OPS:
-            left = max(left, _advance(list_metrics, text_in(lang, msgid)))
         for title, desc in _HUB_CARDS:
             title_w = _advance(title_metrics, text_in(lang, title)) + 20 + 6
             desc_w = _advance(desc_metrics, text_in(lang, desc))
             right = max(right, title_w, desc_w)
-    left += 16 + 36
     # hub frame margins 6+6 and a little room so French titles are not clipped
     right += 12 + 12 + 8
-    total = left + right + _HOME_EDGE
-    return left, right, total
+    total = right + _HOME_EDGE
+    return right, total
 
 
 def _settings():
@@ -275,6 +259,7 @@ def _settings():
 class FieldDialog(QDialog):
     def __init__(self, layer, specs, parent=None):
         super(FieldDialog, self).__init__(parent)
+        apply_taskbar_window(self)
         self.setWindowTitle(tr("导出字段"))
         self.resize(420, 360)
         root = QVBoxLayout(self)
@@ -321,6 +306,7 @@ class FieldDialog(QDialog):
 class PairDialog(QDialog):
     def __init__(self, source_names, ref_names, parent=None):
         super(PairDialog, self).__init__(parent)
+        apply_taskbar_window(self)
         self.setWindowTitle(tr("手动配对"))
         self.resize(560, 360)
         root = QVBoxLayout(self)
@@ -442,19 +428,18 @@ class _PageStack(QStackedWidget):
 class MainDialog(QDialog):
     def __init__(self, parent=None):
         super(MainDialog, self).__init__(parent)
+        apply_taskbar_window(self)
         self.setObjectName("KmzMainDialog")
         self.setStyleSheet(_STYLE)
         self.setWindowTitle(self._title())
         self.setWindowIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "icon.png")))
-        self.resize(350, 320)
+        self.resize(220, 320)
         self._block = False
         self._page_key = "home"
         self._shown = False
         self._home_pos = None
-        self._home_min_w = 350
-        self._home_left_w = 0
+        self._home_min_w = 220
         self._home_right_min = 0
-        self._op_frame = None
         self._pages = {}
         root = QVBoxLayout(self)
         root.setContentsMargins(8, 6, 8, 8)
@@ -477,17 +462,29 @@ class MainDialog(QDialog):
         self.act_export_icon = QAction(self._theme_action_icon("mActionSharingExport.svg", "出", "#2e7d32"), "", self)
         self.act_export_icon.setToolTip(tr("导出"))
         self.act_export_icon.triggered.connect(self._show_export_menu)
-        self.toolbar.addAction(self.act_help)
-        self.toolbar.addAction(self.act_import)
-        self.toolbar.addAction(self.act_export_icon)
-        self.toolbar.addAction(self.act_language)
         self.act_settings = QAction(self._theme_action_icon("mActionOptions.svg", "设", "#455a64"), "", self)
         self.act_settings.setToolTip(tr("设置"))
         self.act_settings.triggered.connect(self._show_settings_menu)
-        self.toolbar.addAction(self.act_settings)
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        self.toolbar.addWidget(spacer)
+        # Language and Help swapped; five icons evenly spaced across the home top bar.
+        home_actions = (
+            self.act_language,
+            self.act_import,
+            self.act_export_icon,
+            self.act_help,
+            self.act_settings,
+        )
+        lead = QWidget()
+        lead.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.toolbar.addWidget(lead)
+        for index, action in enumerate(home_actions):
+            if index:
+                gap = QWidget()
+                gap.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+                self.toolbar.addWidget(gap)
+            self.toolbar.addAction(action)
+        trail = QWidget()
+        trail.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.toolbar.addWidget(trail)
         root.addWidget(self.toolbar)
         self.stack = _PageStack()
         root.addWidget(self.stack, 1)
@@ -621,56 +618,20 @@ class MainDialog(QDialog):
 
     def _build_home(self):
         page = QWidget()
-        layout = QHBoxLayout(page)
+        layout = QVBoxLayout(page)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-        group = QFrame()
-        group.setObjectName("opFrame")
-        self._op_frame = group
-        group.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
-        group_layout = QVBoxLayout(group)
-        group_layout.setContentsMargins(6, 6, 6, 6)
-        self.op_list = QListWidget()
-        self.op_list.setObjectName("opList")
-        self.op_list.setIconSize(QSize(16, 16))
-        self.op_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        from .icons import glyph_icon
-        self._op_items = (
-            ("clear", "清空数据", "删除全部矢量图层的全部要素，不能恢复", "trash", "#c62828"),
-            ("on", "打开编辑", "打开所有图层的编辑模式", "pencil", "#1565c0"),
-            ("off", "保存关闭", "保存并关闭所有图层的编辑模式", "save", "#2e7d32"),
-            ("empty", "复制为空", "复制当前图层的字段和样式，不含要素", "empty", "#ef6c00"),
-            ("full", "复制图层", "复制当前图层的要素、字段和样式", "copy", "#6a1b9a"),
-        )
-        for key, title, tip, mark, color in self._op_items:
-            item = QListWidgetItem(glyph_icon(mark, color), tr(title))
-            item.setData(Qt.ItemDataRole.UserRole, key)
-            item.setData(Qt.ItemDataRole.UserRole + 1, title)
-            item.setData(Qt.ItemDataRole.UserRole + 2, tip)
-            item.setToolTip(tr(tip))
-            self.op_list.addItem(item)
-        self.op_list.setCurrentRow(0)
-        self.op_list.itemDoubleClicked.connect(lambda *_args: self._on_confirm())
-        group_layout.addWidget(self.op_list, 1)
-        confirm = self._button("确定", self._on_confirm, mark_key="ok")
-        confirm.setObjectName("homeOk")
-        group_layout.addWidget(confirm)
-        layout.addWidget(group, 0)
-
+        layout.setSpacing(4)
         cards = (
             ("export", "导出 KMZ", "按组写出，可另存 KML", "hub_export"),
             ("manual", "手动样式", "配对后再替换样式", "hub_manual"),
             ("auto", "自动样式", "按文件夹名套参考样式", "hub_auto"),
             ("coords", "坐标对比", "仅一侧，或同名移动", "hub_coords"),
-            ("names", "图层对比", "数量、Name 或点线面", "hub_names"),
+            ("names", "图层对比", "数量与 Name、字段或点线面", "hub_names"),
         )
-        right = QVBoxLayout()
-        right.setSpacing(4)
         for key, title, desc, hub_mark in cards:
             button = _HubButton(title, desc, hub_mark)
             button.clicked.connect(lambda page=key: self.open_page(page))
-            right.addWidget(button, 1)
-        layout.addLayout(right, 1)
+            layout.addWidget(button, 1)
         self._apply_home_mins()
         self._add_page("home", page)
 
@@ -680,13 +641,9 @@ class MainDialog(QDialog):
         title_font.setBold(True)
         desc_font = QFont(self.font())
         desc_font.setPixelSize(10)
-        left, right, total = home_column_mins(self.op_list.font(), title_font, desc_font)
-        self._home_left_w = left
+        right, total = home_column_mins(title_font, desc_font)
         self._home_right_min = right
-        self._home_min_w = max(350, total)
-        frame = self._op_frame or self.findChild(QFrame, "opFrame")
-        if frame is not None:
-            frame.setFixedWidth(left)
+        self._home_min_w = max(180, total)
         for button in self.findChildren(QFrame):
             if button.objectName() == "hubBtn":
                 button.setMinimumWidth(right)
@@ -862,12 +819,6 @@ class MainDialog(QDialog):
         self.act_export_icon.setToolTip(tr("导出"))
         if getattr(self, "act_settings", None) is not None:
             self.act_settings.setToolTip(tr("设置"))
-        for index, (_key, title, tip, _mark, _color) in enumerate(self._op_items):
-            item = self.op_list.item(index)
-            if item is None:
-                continue
-            item.setText(tr(title))
-            item.setToolTip(tr(tip))
         retranslate_tree(self)
         from .button_marks import refit_buttons
         refit_buttons(self)
@@ -886,30 +837,6 @@ class MainDialog(QDialog):
                 if desc:
                     widget.setToolTip(tr(str(desc)))
         self._apply_home_mins()
-
-    def _on_confirm(self):
-        item = self.op_list.currentItem()
-        choice = item.data(Qt.ItemDataRole.UserRole) if item is not None else ""
-        if choice == "clear":
-            if not layer_ops.confirm_clear(self):
-                return
-            ok, message = layer_ops.clear_all_features()
-        elif choice == "on":
-            ok, message = layer_ops.editing_on()
-        elif choice == "off":
-            ok, message = layer_ops.editing_off()
-        elif choice in ("empty", "full"):
-            result = layer_ops.copy_current_layer(self, choice == "full")
-            if result is None:
-                return
-            ok, message = result
-        else:
-            QMessageBox.information(self, tr("提示"), tr("请先选择一项图层操作。"))
-            return
-        if ok:
-            QMessageBox.information(self, tr("完成"), message)
-        else:
-            QMessageBox.warning(self, tr("完成"), message)
 
     def _load_settings(self):
         return

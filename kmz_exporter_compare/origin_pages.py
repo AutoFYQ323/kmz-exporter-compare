@@ -50,7 +50,7 @@ from qgis.core import (
     Qgis,
 )
 
-from .compare_run import folder_compare_report, geometry_type_report
+from .compare_run import folder_compare_report, geometry_type_report, layer_fields_table
 from .engine import (
     _kml_document_name,
     _kml_source_root_display_name,
@@ -63,10 +63,22 @@ from .engine import (
 )
 from .origin_export import KmzExportDialog
 from .origin_style_map import KmzStyleMapDialog
-from .qtutil import run_dialog
+from .qtutil import apply_taskbar_window, run_dialog
 from .button_marks import decorate_button, styled_button
 from .coord_match import keyword_score as _keyword_score
 from .i18n import tr
+
+_STYLE_ROLE_HINT = "被替换图层提供几何和属性；参考图层提供图标和气泡样式。"
+_AUTO_HINT = "文件夹名一致时使用。用参考图层的图标和气泡替换被替换图层的样式，几何和属性仍来自被替换图层。"
+_ROLE_HINT_STYLE = "color: #c62828; font-size: 12px; font-weight: bold;"
+_TITLE_HINT_STYLE = "color: #263238; font-size: 12px; font-weight: bold;"
+_ACCENT_DROP_STYLE = (
+    "KmzDropFrame { border: 2px dashed #64b5f6; border-radius: 10px;"
+    " background-color: #e3f2fd; padding: 10px; }"
+    "KmzDropFrame:hover { border-color: #42a5f5; background-color: #bbdefb; }"
+    "KmzDropFrame QLabel { background-color: transparent; padding: 2px 4px; color: #1565c0; }"
+)
+_ACCENT_PATH_STYLE = "color: #1565c0; font-size: 11px;"
 
 _SETTINGS = "KMZExporterCompare"
 _POPUP = """
@@ -191,12 +203,14 @@ def _show_phrase(text):
     return text
 
 
-def show_text_result(parent, text, title):
-    dialog = QDialog(parent)
+def show_text_result(parent, text, title, size=None):
+    dialog = QDialog(None)
+    apply_taskbar_window(dialog)
     dialog.setWindowTitle(tr(title))
     dialog.setStyleSheet(_POPUP)
-    dialog.setMinimumSize(480, 320)
-    dialog.resize(560, 400)
+    width, height = size or (560, 400)
+    dialog.setMinimumSize(min(480, width), min(320, height))
+    dialog.resize(width, height)
     layout = QVBoxLayout(dialog)
     edit = QTextEdit()
     edit.setReadOnly(True)
@@ -235,8 +249,109 @@ def show_text_result(parent, text, title):
     run_dialog(dialog)
 
 
+def show_fields_result(parent, rows, text, title="图层名称与字段对比结果"):
+    dialog = QDialog(None)
+    apply_taskbar_window(dialog)
+    dialog.setWindowTitle(tr(title))
+    dialog.setStyleSheet(_POPUP)
+    dialog.setMinimumSize(560, 420)
+    dialog.resize(700, 600)
+    layout = QVBoxLayout(dialog)
+    table = QTableWidget()
+    headers = ("QGIS", "KMZ", "类型", "结果")
+    table.setColumnCount(4)
+    table.setHorizontalHeaderLabels([tr(item) for item in headers])
+    table.setProperty("headerMsgids", list(headers))
+    table.verticalHeader().setVisible(False)
+    table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+    table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+    table.setAlternatingRowColors(True)
+    table.setRowCount(len(rows or []))
+    for row_index, row in enumerate(rows or []):
+        values = (
+            row.get("qgis") or "—",
+            row.get("kmz") or "—",
+            row.get("type") or "",
+            row.get("result") or "",
+        )
+        for column, value in enumerate(values):
+            item = QTableWidgetItem(str(value))
+            table.setItem(row_index, column, item)
+    from .qtutil import header_mode
+
+    header = table.horizontalHeader()
+    header.setStretchLastSection(True)
+    header.setSectionResizeMode(0, header_mode("Interactive"))
+    header.setSectionResizeMode(1, header_mode("Interactive"))
+    header.setSectionResizeMode(2, header_mode("ResizeToContents"))
+    header.setSectionResizeMode(3, header_mode("Stretch"))
+    table.setColumnWidth(0, 160)
+    table.setColumnWidth(1, 160)
+    if not rows:
+        empty = QLabel(tr("图层名称与字段（含顺序）均一致。"))
+        empty.setWordWrap(True)
+        layout.addWidget(empty)
+    layout.addWidget(table, 1)
+    row = QHBoxLayout()
+    copy = styled_button("复制结果")
+
+    def _copy():
+        lines = ["\t".join(tr(item) for item in headers)]
+        for item in rows or []:
+            lines.append("\t".join([
+                item.get("qgis") or "—",
+                item.get("kmz") or "—",
+                item.get("type") or "",
+                item.get("result") or "",
+            ]))
+        QApplication.clipboard().setText("\n".join(lines))
+        _msg(dialog, "提示", "已复制到剪贴板")
+
+    copy.clicked.connect(_copy)
+    export = styled_button("导出报告")
+
+    def _save_report():
+        start = _read("namesReportDir") or ""
+        path, selected = QFileDialog.getSaveFileName(
+            dialog, tr("导出报告"), start, tr("文本 (*.txt);;CSV (*.csv);;所有文件 (*.*)")
+        )
+        if not path:
+            return
+        low = path.lower()
+        if not low.endswith(".txt") and not low.endswith(".csv"):
+            path += ".csv" if selected and "csv" in selected.lower() else ".txt"
+        body = text or ""
+        if path.lower().endswith(".csv") and rows:
+            lines = [",".join(tr(item) for item in headers)]
+            for item in rows:
+                cells = [
+                    item.get("qgis") or "—",
+                    item.get("kmz") or "—",
+                    item.get("type") or "",
+                    item.get("result") or "",
+                ]
+                lines.append(",".join('"{0}"'.format(str(cell).replace('"', '""')) for cell in cells))
+            body = "\n".join(lines)
+        try:
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write(body)
+        except OSError as exc:
+            _msg(dialog, "导出报告", tr("没有写成文件：{0}").format(exc), warning=True)
+            return
+        _write("namesReportDir", os.path.dirname(path))
+        _msg(dialog, "导出报告", path)
+
+    export.clicked.connect(_save_report)
+    row.addWidget(copy)
+    row.addWidget(export)
+    row.addStretch(1)
+    layout.addLayout(row)
+    run_dialog(dialog)
+
+
 def show_style_result(parent, report_rows, text_summary, title):
-    dialog = QDialog(parent)
+    dialog = QDialog(None)
+    apply_taskbar_window(dialog)
     dialog.setWindowTitle(tr(title))
     dialog.setStyleSheet(_POPUP)
     dialog.setMinimumSize(720, 380)
@@ -643,32 +758,32 @@ def build_names_page(host):
     group = QGroupBox("KMZ 图层对比")
     inner = QVBoxLayout(group)
     host.lblKmzPath = _path_label("未选择 KMZ 文件")
+    host.lblKmzPath.setStyleSheet(_ACCENT_PATH_STYLE)
     button = styled_button("选择 KMZ 文件")
     button.clicked.connect(lambda: _pick_compare_kmz(host))
     frame = KmzDropFrame(on_drop=lambda path: _set_compare_kmz(host, path))
     frame.setToolTip("可将 KMZ 文件拖入下方虚线框内以自动填入路径")
+    frame.setStyleSheet(_ACCENT_DROP_STYLE)
+    # Default drop frame is ~52px min; double the pick area height.
+    frame.setMinimumHeight(104)
     drop = QVBoxLayout(frame)
     drop.setSpacing(6)
     drop.setContentsMargins(8, 8, 8, 8)
     drop.addWidget(host.lblKmzPath)
+    drop.addStretch(1)
     drop.addWidget(button)
-    host.radioKmzCount = QRadioButton("图层的元素数量对比（需精确匹配图层名）")
-    host.radioKmzCount.setChecked(True)
-    host.radioKmzName = QRadioButton("图层的 Name 字段名称对比（需精确匹配图层名）")
-    host.radioKmzBoth = QRadioButton("二者兼对比（需精确匹配图层名）")
+    host.radioKmzBoth = QRadioButton("要素数量与 Name 字段对比（需精确匹配图层名）")
+    host.radioKmzBoth.setChecked(True)
     host.radioKmzByGeometry = QRadioButton("按几何类型统计对比（不看图层名）")
-    host.chkTreatZeroAsNoData = QCheckBox("将要素数为 0 的图层视为无数据（不勾选时 0 与空均视为一致）")
-    host.chkTreatZeroAsNoData.setChecked(False)
+    host.radioKmzFields = QRadioButton("图层名称与字段对比（含字段顺序）")
     start = styled_button("开始对比")
     start.clicked.connect(lambda: run_names(host))
     actions = _half_row(start, _home_button(host))
     inner.addWidget(frame)
     inner.addSpacing(6)
-    inner.addWidget(host.radioKmzCount)
-    inner.addWidget(host.radioKmzName)
     inner.addWidget(host.radioKmzBoth)
     inner.addWidget(host.radioKmzByGeometry)
-    inner.addWidget(host.chkTreatZeroAsNoData)
+    inner.addWidget(host.radioKmzFields)
     inner.addSpacing(4)
     inner.addLayout(actions)
     layout.addWidget(group)
@@ -702,24 +817,30 @@ def run_names(host):
     if not path or not os.path.isfile(path):
         _msg(host, "提示", "请先选择有效的 KMZ 文件。", warning=True)
         return
+    mode = "text"
+    rows = None
+    text = ""
     QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
     try:
         if host.radioKmzByGeometry.isChecked():
             text = geometry_type_report(path)
+        elif host.radioKmzFields.isChecked():
+            mode = "fields"
+            rows, text = layer_fields_table(path)
         else:
-            if host.radioKmzCount.isChecked():
-                mode = "count"
-            elif host.radioKmzName.isChecked():
-                mode = "name"
-            else:
-                mode = "both"
-            text = folder_compare_report(path, mode, host.chkTreatZeroAsNoData.isChecked())
+            text = folder_compare_report(path, "both", False)
     finally:
         QApplication.restoreOverrideCursor()
+    if mode == "fields":
+        if rows is None:
+            _msg(host, "提示", text, warning=True)
+            return
+        show_fields_result(host, rows, text)
+        return
     show_text_result(host, text, "KMZ 对比结果")
 
 
-def _drop_block(title, button_text, on_click, on_drop):
+def _drop_block(title, button_text, on_click, on_drop, expand=False, accent=False):
     label = _path_label(title)
     button = styled_button(button_text)
     button.clicked.connect(on_click)
@@ -727,8 +848,17 @@ def _drop_block(title, button_text, on_click, on_drop):
     layout = QVBoxLayout(frame)
     layout.setSpacing(6)
     layout.setContentsMargins(8, 8, 8, 8)
-    layout.addWidget(label)
-    layout.addWidget(button)
+    layout.addWidget(label, 0)
+    if expand:
+        layout.addStretch(1)
+        button.setMinimumHeight(36)
+        button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        frame.setMinimumHeight(96)
+    layout.addWidget(button, 0)
+    if accent:
+        frame.setStyleSheet(_ACCENT_DROP_STYLE)
+        label.setStyleSheet(_ACCENT_PATH_STYLE)
     return frame, label
 
 
@@ -738,28 +868,38 @@ def build_auto_page(host):
     layout.setSpacing(10)
     layout.setContentsMargins(8, 8, 8, 8)
     group = QGroupBox("自动样式")
+    group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
     inner = QVBoxLayout(group)
+    hint = _hint(_AUTO_HINT)
+    hint.setStyleSheet(_TITLE_HINT_STYLE)
+    inner.addWidget(hint)
+    role = _hint(_STYLE_ROLE_HINT)
+    role.setStyleSheet(_ROLE_HINT_STYLE)
+    inner.addWidget(role)
     frame_a, host.lblKmzA = _drop_block(
-        "未选择源图层", "选择源图层",
+        "未选择被替换图层", "选择被替换图层",
         lambda: _pick_style(host, "a"),
         lambda path: _set_style(host, "a", path),
+        expand=True,
+        accent=True,
     )
-    frame_a.setToolTip("可将 KMZ 文件拖入此处作为源图层")
+    frame_a.setToolTip("可将 KMZ 文件拖入此处作为被替换图层")
     frame_b, host.lblKmzB = _drop_block(
         "未选择参考图层", "选择参考图层",
         lambda: _pick_style(host, "b"),
         lambda path: _set_style(host, "b", path),
+        expand=True,
     )
     frame_b.setToolTip("可将 KMZ 文件拖入此处作为参考图层")
     run = styled_button("执行替换并导出（输出图层）", mark_key="export")
     run.clicked.connect(lambda: run_auto(host))
-    actions = _half_row(run, _home_button(host))
-    inner.addWidget(frame_a)
+    actions = _half_row(_home_button(host), run)
+    inner.addWidget(frame_a, 1)
     inner.addSpacing(6)
-    inner.addWidget(frame_b)
+    inner.addWidget(frame_b, 1)
     inner.addSpacing(6)
     inner.addLayout(actions)
-    layout.addWidget(group)
+    layout.addWidget(group, 1)
     host._kmz_style_a = None
     host._kmz_style_b = None
     saved_a = _read("kmzStyleAPath") or _read("autoSrc")
@@ -772,7 +912,7 @@ def build_auto_page(host):
 
 
 def _pick_style(host, which):
-    title = "选择源图层" if which == "a" else "选择参考图层"
+    title = "选择被替换图层" if which == "a" else "选择参考图层"
     path, _selected = QFileDialog.getOpenFileName(host, tr(title), "", "KMZ (*.kmz)")
     if path:
         _set_style(host, which, path)
@@ -809,7 +949,7 @@ def _pick_kmz_or_kml(parent, title, default_path=""):
 
 def run_auto(host):
     if not host._kmz_style_a or not os.path.isfile(host._kmz_style_a):
-        _msg(host, "提示", "请先选择源图层文件。", warning=True)
+        _msg(host, "提示", "请先选择被替换图层文件。", warning=True)
         return
     if not host._kmz_style_b or not os.path.isfile(host._kmz_style_b):
         _msg(host, "提示", "请先选择参考图层文件。", warning=True)
@@ -845,32 +985,38 @@ def build_manual_page(host):
     layout.setSpacing(10)
     layout.setContentsMargins(8, 8, 8, 8)
     group = QGroupBox("手动样式")
+    group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
     inner = QVBoxLayout(group)
-    hint = _hint("图层名不一致时使用。点执行后先弹出匹配页。默认按参考的结构与名称输出，数据只来自源图层。")
-    hint.setStyleSheet("color: #263238; font-size: 12px; font-weight: bold;")
+    hint = _hint("图层名不一致时使用。点执行后先弹出匹配页。默认按参考的结构与名称输出，数据只来自被替换图层。")
+    hint.setStyleSheet(_TITLE_HINT_STYLE)
     inner.addWidget(hint)
+    role = _hint(_STYLE_ROLE_HINT)
+    role.setStyleSheet(_ROLE_HINT_STYLE)
+    inner.addWidget(role)
     frame_a, host.lblKmzManualA = _drop_block(
-        "未选择源图层", "选择源图层",
+        "未选择被替换图层", "选择被替换图层",
         lambda: _pick_manual(host, "a"),
         lambda path: _set_manual(host, "a", path),
+        expand=True,
+        accent=True,
     )
-    frame_a.setToolTip("可将 KMZ 文件拖入此处作为源图层")
+    frame_a.setToolTip("可将 KMZ 文件拖入此处作为被替换图层")
     frame_b, host.lblKmzManualB = _drop_block(
         "未选择参考图层", "选择参考图层",
         lambda: _pick_manual(host, "b"),
         lambda path: _set_manual(host, "b", path),
+        expand=True,
     )
     frame_b.setToolTip("可将 KMZ 文件拖入此处作为参考图层")
     run = styled_button("执行替换", mark_key="manual")
     run.clicked.connect(lambda: run_manual(host))
-    actions = _half_row(run, _home_button(host))
-    inner.addWidget(frame_a)
+    actions = _half_row(_home_button(host), run)
+    inner.addWidget(frame_a, 1)
     inner.addSpacing(6)
-    inner.addWidget(frame_b)
+    inner.addWidget(frame_b, 1)
     inner.addSpacing(6)
     inner.addLayout(actions)
-    layout.addWidget(group)
-    layout.addStretch(1)
+    layout.addWidget(group, 1)
     host._kmz_manual_a = None
     host._kmz_manual_b = None
     host._kmz_manual_map_path = _read("kmzManualMapPath")
@@ -886,7 +1032,8 @@ def build_manual_page(host):
 
 
 def _pick_manual(host, which):
-    path, _selected = QFileDialog.getOpenFileName(host, tr("选择源图层" if which == "a" else "选择参考图层"), "", "KMZ (*.kmz)")
+    title = "选择被替换图层" if which == "a" else "选择参考图层"
+    path, _selected = QFileDialog.getOpenFileName(host, tr(title), "", "KMZ (*.kmz)")
     if path:
         _set_manual(host, which, path)
 
@@ -910,7 +1057,7 @@ def _set_manual(host, which, path, remember=True):
 
 def run_manual(host):
     if not host._kmz_manual_a or not os.path.isfile(host._kmz_manual_a):
-        _msg(host, "提示", "请先选择源图层文件。", warning=True)
+        _msg(host, "提示", "请先选择被替换图层文件。", warning=True)
         return
     if not host._kmz_manual_b or not os.path.isfile(host._kmz_manual_b):
         _msg(host, "提示", "请先选择参考图层文件。", warning=True)
@@ -927,7 +1074,7 @@ def run_manual(host):
     a_rows = _style_map_collect_rows(root_a)
     b_rows = _style_map_collect_tree_rows(root_b)
     if not a_rows:
-        _msg(host, "提示", "源图层中没有可替换样式的图层（需有带几何的要素）。", warning=True)
+        _msg(host, "提示", "被替换图层中没有可替换样式的图层（需有带几何的要素）。", warning=True)
         return
     if not any(row.get("is_layer") for row in b_rows):
         _msg(host, "提示", "参考图层中没有可用的样式图层（需有带几何的要素）。", warning=True)
@@ -1056,21 +1203,17 @@ def build_coords_page(host):
     options.addWidget(host._save_edit)
     options.addWidget(host._add_result)
     buttons = QHBoxLayout()
-    run = styled_button("批量运行对比", mark_key="run")
-    save = styled_button("保存配置", mark_key="save")
-    cancel = styled_button("取消")
-    run.setStyleSheet("QPushButton { padding: 4px 8px; min-height: 40px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; } QPushButton:hover { background-color: #45a049; }")
-    save.setStyleSheet("QPushButton { padding: 4px 8px; min-height: 40px; background-color: #1565c0; color: white; border: none; border-radius: 4px; } QPushButton:hover { background-color: #0d47a1; }")
-    cancel.setStyleSheet("QPushButton { padding: 4px 8px; min-height: 40px; background-color: #f44336; color: white; border: none; border-radius: 4px; } QPushButton:hover { background-color: #d32f2f; }")
     home = _home_button(host)
+    save = styled_button("保存配置", mark_key="save")
+    run = styled_button("批量运行对比", mark_key="run")
     home.setStyleSheet("QPushButton { padding: 4px 8px; min-height: 40px; background-color: #607d8b; color: white; border: none; border-radius: 4px; } QPushButton:hover { background-color: #546e7a; }")
+    save.setStyleSheet("QPushButton { padding: 4px 8px; min-height: 40px; background-color: #1565c0; color: white; border: none; border-radius: 4px; } QPushButton:hover { background-color: #0d47a1; }")
+    run.setStyleSheet("QPushButton { padding: 4px 8px; min-height: 40px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; } QPushButton:hover { background-color: #45a049; }")
     run.clicked.connect(lambda: run_coords(host))
     save.clicked.connect(lambda: _save_coord_config(host))
-    cancel.clicked.connect(lambda: host.open_page("home"))
-    buttons.addWidget(run, 1)
-    buttons.addWidget(save, 1)
-    buttons.addWidget(cancel, 1)
     buttons.addWidget(home, 1)
+    buttons.addWidget(save, 1)
+    buttons.addWidget(run, 1)
     buttons.setSpacing(8)
     run_box = QFrame()
     run_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)

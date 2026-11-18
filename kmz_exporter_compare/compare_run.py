@@ -14,9 +14,17 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QVariant
 
-from .compare_core import STATUS_MOVED, STATUS_ONLY_KMZ, STATUS_ONLY_QGIS, classify
+from .compare_core import (
+    STATUS_MOVED,
+    STATUS_ONLY_KMZ,
+    STATUS_ONLY_QGIS,
+    classify,
+    layer_field_issues,
+)
 from .engine import (
+    _get_b_all_folder_names,
     _get_b_folders_placemarks,
+    _kml_extended_data_element_field_name,
     _kml_has_geometry,
     _kml_local_name,
     _kml_placemark_name,
@@ -226,6 +234,167 @@ def folder_compare_report(kmz_path, mode, zero_counts):
         lines.extend(_name_lines(qgis_layers, stats, zero_counts))
     text = "\n".join(lines).strip()
     return text or tr("无对比结果")
+
+
+def _schema_map(root):
+    schemas = {}
+    if root is None:
+        return schemas
+    for element in root.iter():
+        if _kml_local_name(element.tag) != "Schema":
+            continue
+        sid = (element.get("id") or element.get("name") or "").strip()
+        fields = []
+        for child in list(element):
+            if _kml_local_name(child.tag) != "SimpleField":
+                continue
+            name = (child.get("name") or "").strip()
+            if name:
+                fields.append(name)
+        if not sid:
+            continue
+        schemas[sid] = fields
+        schemas["#" + sid] = fields
+    return schemas
+
+
+def _placemark_field_names(placemark, schemas):
+    ordered = []
+    seen = set()
+    if placemark is None:
+        return ordered
+    for child in list(placemark):
+        if _kml_local_name(child.tag) != "ExtendedData":
+            continue
+        for data_el in list(child):
+            local = _kml_local_name(data_el.tag)
+            if local == "SchemaData":
+                url = (data_el.get("schemaUrl") or "").strip()
+                schema_fields = schemas.get(url) or schemas.get(url.lstrip("#")) or []
+                for name in schema_fields:
+                    key = name.casefold()
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    ordered.append(name)
+                for simple in list(data_el):
+                    if _kml_local_name(simple.tag) != "SimpleData":
+                        continue
+                    name = (simple.get("name") or "").strip()
+                    if not name:
+                        continue
+                    key = name.casefold()
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    ordered.append(name)
+            elif local == "Data":
+                name = (_kml_extended_data_element_field_name(data_el, "Data") or "").strip()
+                if not name:
+                    continue
+                key = name.casefold()
+                if key in seen:
+                    continue
+                seen.add(key)
+                ordered.append(name)
+    return ordered
+
+
+def folder_field_lists(kmz_path):
+    """folder name -> ordered field names from Schema / ExtendedData."""
+    root, _ = _kmz_get_kml_root(kmz_path)
+    if root is None:
+        return None
+    schemas = _schema_map(root)
+    folders = _get_b_folders_placemarks(root)
+    out = {}
+    for name, placemarks in folders.items():
+        fields = []
+        for placemark in placemarks:
+            fields = _placemark_field_names(placemark, schemas)
+            if fields:
+                break
+        out[name] = fields
+    for name in _get_b_all_folder_names(root):
+        out.setdefault(name, [])
+    return out
+
+
+def project_layer_fields():
+    """Layer name -> ordered field names."""
+    out = {}
+    for layer in QgsProject.instance().mapLayers().values():
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            continue
+        name = (layer.name() or "").strip()
+        if not name:
+            continue
+        fields = []
+        for field in layer.fields():
+            field_name = (field.name() or "").strip()
+            if field_name:
+                fields.append(field_name)
+        out[name] = fields
+    return out
+
+
+def _field_issue_labels():
+    return {
+        "only_qgis": tr("仅 QGIS 有此图层"),
+        "only_kmz": tr("仅 KMZ 有此文件夹"),
+        "fields_only_qgis": tr("仅 QGIS 有这些字段"),
+        "fields_only_kmz": tr("仅 KMZ 有这些字段"),
+        "field_order": tr("字段顺序不一致"),
+    }
+
+
+def _field_issue_type(kind):
+    if kind in ("only_qgis", "only_kmz"):
+        return tr("图层")
+    if kind == "field_order":
+        return tr("字段顺序")
+    return tr("字段")
+
+
+def layer_fields_table(kmz_path):
+    """Return (rows, summary_text). rows are dicts: qgis, kmz, type, result."""
+    kmz_fields = folder_field_lists(kmz_path)
+    if kmz_fields is None:
+        return None, tr("无法读取这份 KMZ。")
+    qgis_fields = project_layer_fields()
+    issues = layer_field_issues(qgis_fields, kmz_fields)
+    labels = _field_issue_labels()
+    rows = []
+    for issue in issues:
+        kind = issue.get("kind")
+        detail = (issue.get("detail") or "").strip()
+        result = labels.get(kind, kind or "")
+        if detail:
+            result = "{0}：{1}".format(result, detail)
+        rows.append({
+            "qgis": issue.get("qgis") or "—",
+            "kmz": issue.get("kmz") or "—",
+            "type": _field_issue_type(kind),
+            "result": result,
+        })
+    lines = [tr("【图层名称与字段对比】"), ""]
+    lines.append(tr("QGIS 图层 {0} 个，KMZ 文件夹 {1} 个。").format(len(qgis_fields), len(kmz_fields)))
+    if not rows:
+        lines.append(tr("图层名称与字段（含顺序）均一致。"))
+    else:
+        for row in rows:
+            lines.append("{0}\t{1}\t{2}\t{3}".format(
+                row["qgis"], row["kmz"], row["type"], row["result"]
+            ))
+        lines.append("")
+        lines.append(tr("共 {0} 处不一致。").format(len(rows)))
+    return rows, "\n".join(lines)
+
+
+def layer_fields_report(kmz_path):
+    """Compare KMZ folder names and fields with QGIS layers, including field order."""
+    _rows, text = layer_fields_table(kmz_path)
+    return text
 
 
 def _effective_count(count, zero_counts):

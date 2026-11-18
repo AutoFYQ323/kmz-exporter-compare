@@ -13,7 +13,7 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.core import QgsProject, QgsSymbolLayerUtils, QgsVectorLayer
 
-from .qtutil import header_mode, run_dialog
+from .qtutil import apply_taskbar_window, header_mode, run_dialog
 from .button_marks import decorate_button
 from .i18n import tr
 
@@ -106,6 +106,7 @@ class KmzStyleMapDialog(QDialog):
     def __init__(self, parent, a_rows, b_rows, last_map_path=None, use_ref_structure=True,
                  use_source_root_name=True, source_root_name="", ref_root_name=""):
         super(KmzStyleMapDialog, self).__init__(parent)
+        apply_taskbar_window(self)
         self.setWindowTitle("图层名称匹配")
         self.setSizeGripEnabled(True)
         popup = getattr(parent, "POPUP_STYLE", "") if parent is not None else ""

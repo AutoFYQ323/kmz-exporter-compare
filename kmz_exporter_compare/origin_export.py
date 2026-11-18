@@ -120,6 +120,8 @@ class KmzFieldDialog(QDialog):
 
     def __init__(self, specs, parent=None):
         super(KmzFieldDialog, self).__init__(parent)
+        from .qtutil import apply_taskbar_window
+        apply_taskbar_window(self)
         self.setWindowTitle(tr("导出字段"))
         self.setStyleSheet(KmzExportDialog._PLAIN_BTN)
         self.resize(480, 380)
@@ -326,26 +328,23 @@ class KmzExportDialog(QWidget):
         grid.addWidget(checks, 0, 0)
         grid.addWidget(null_box, 1, 0)
         btn_toggle = styled_button("全选/全不选")
-        btn_ok = styled_button("导出KMZ")
         btn_home = styled_button("返回主页面")
-        btn_cancel = styled_button("取消")
         btn_save = styled_button("保存配置", mark_key="save")
-        for btn in (btn_toggle, btn_ok, btn_home, btn_cancel, btn_save):
+        btn_ok = styled_button("导出KMZ")
+        for btn in (btn_toggle, btn_home, btn_save, btn_ok):
             btn.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Expanding)
             btn.setStyleSheet(self._BAR_BTN)
             btn.setMinimumHeight(48)
-        btn_toggle.setMinimumWidth(156)
         btn_ok.setStyleSheet(
             self._BAR_BTN + "QPushButton { color: #0d47a1; }"
         )
         btn_toggle.clicked.connect(self._toggle_all)
         btn_ok.clicked.connect(self._accept_export)
-        btn_cancel.clicked.connect(self._go_home)
         btn_home.clicked.connect(self._go_home)
         btn_save.clicked.connect(self._save_page_config)
-        for column, btn in enumerate((btn_toggle, btn_ok, btn_home, btn_cancel, btn_save), start=1):
+        for column, btn in enumerate((btn_toggle, btn_home, btn_save, btn_ok), start=1):
             grid.addWidget(btn, 0, column, 2, 1)
-            grid.setColumnStretch(column, 4 if btn is btn_toggle else 3)
+            grid.setColumnStretch(column, 3)
         grid.setColumnStretch(0, 2)
         grid.setRowStretch(0, 1)
         grid.setRowStretch(1, 1)

@@ -62,7 +62,8 @@ class Plugin(object):
 
     def run(self):
         if self.dialog is None:
-            self.dialog = MainDialog(self.iface.mainWindow())
+            # parent=None so the window stays on the taskbar when QGIS is minimized
+            self.dialog = MainDialog(None)
         self.dialog.open_page("home")
         self.dialog.show()
         self.dialog.raise_()
